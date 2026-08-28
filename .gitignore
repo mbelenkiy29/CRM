@@ -94,6 +94,7 @@ packages/*/src/**/*.jsx
 .test-cache.json
 
 tmp/
+graphify-out/
 
 public/uploads/*
 apps/mercato/storage/*

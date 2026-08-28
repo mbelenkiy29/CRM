@@ -119,7 +119,10 @@
     "check:time-bombs:fail": "node scripts/time-bomb-scanner.mjs --fail",
     "agents:check-budget": "node scripts/check-agents-md-budget.mjs",
     "lessons:check": "node packages/create-app/agentic/shared/scripts/check-lessons.mjs --root .",
-    "mutation:changed": "node scripts/stryker/mutation-changed.mjs"
+    "mutation:changed": "node scripts/stryker/mutation-changed.mjs",
+    "graphify": "graphify .",
+    "graphify:update": "graphify . --update",
+    "graphify:wiki": "graphify . --wiki"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.2",

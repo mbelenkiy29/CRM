@@ -261,6 +261,40 @@ npx skills add open-mercato/skills --skill '*'
 
 ---
 
+## Graphify knowledge graph (optional)
+
+This repository includes convenience scripts for [Graphify](https://github.com/Graphify-Labs/graphify), a local knowledge-graph tool for code/docs exploration.
+
+### Install Graphify CLI
+
+Graphify is distributed as a Python package (CLI name: `graphify`):
+
+```bash
+pipx install graphifyy
+graphify install
+```
+
+If you do not use `pipx`, install with `pip` in your preferred Python environment:
+
+```bash
+pip install --upgrade graphifyy
+graphify install
+```
+
+### Use it in this repo
+
+From the repository root:
+
+```bash
+yarn graphify
+yarn graphify:update
+yarn graphify:wiki
+```
+
+Generated artifacts are written to `graphify-out/` and are git-ignored.
+
+---
+
 ## Spec Driven Development
 
 Open Mercato follows a **spec-first development approach**. Before implementing new features or making significant changes, we document the design in the `.ai/specs/` folder.
