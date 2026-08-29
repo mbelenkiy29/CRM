@@ -32,6 +32,14 @@ export const entities = [
     fields: [],
   },
   {
+    id: 'merchant_advances:mca_funder_match',
+    label: 'MCA Funder Match',
+    description: 'Ranked funder score for an MCA deal. Matching never submits.',
+    labelField: 'score',
+    showInSidebar: false,
+    fields: [],
+  },
+  {
     id: 'merchant_advances:mca_funding',
     label: 'MCA Funding',
     description: 'Funded offer record with payback, payment, and commission distribution.',

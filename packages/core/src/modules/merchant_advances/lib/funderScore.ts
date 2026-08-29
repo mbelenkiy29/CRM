@@ -10,6 +10,15 @@ export type ScoreableDeal = {
   existingPositions?: number | null
   depositCount?: number | null
   avgDailyBalance?: string | number | null
+  creditScore?: number | null
+  bankruptcy?: boolean | null
+  useOfFunds?: string | null
+  entityType?: string | null
+  sic?: string | null
+  holdbackPct?: number | null
+  stacking?: boolean | null
+  weekendDeposits?: boolean | null
+  timeToFundDays?: number | null
 }
 
 export type FunderCriteria = {
@@ -36,6 +45,39 @@ export type FunderCriteria = {
   minCreditScore?: number
   bankruptcyOk?: boolean
   useOfFunds?: string[]
+  maxTimeToFundDays?: number
+}
+
+export const FUNDER_CRITERIA_KEYS = [
+  'industries',
+  'excludedIndustries',
+  'states',
+  'minAvgMonthlyRevenue',
+  'maxAvgMonthlyRevenue',
+  'minTimeInBusinessMonths',
+  'maxPosition',
+  'minRequestedAmount',
+  'maxRequestedAmount',
+  'maxNsfCount',
+  'maxNegativeDays',
+  'maxExistingPositions',
+  'minDepositCount',
+  'minAvgDailyBalance',
+  'preferredIndustries',
+  'allowStacking',
+  'weekendDepositsOk',
+  'entityTypes',
+  'excludedSic',
+  'maxHoldbackPct',
+  'minCreditScore',
+  'bankruptcyOk',
+  'useOfFunds',
+  'maxTimeToFundDays',
+] as const
+
+export function parseFunderCriteria(value: unknown): FunderCriteria {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return value as FunderCriteria
 }
 
 export type FunderScoreReason = {
@@ -169,6 +211,59 @@ export function scoreFunder(deal: ScoreableDeal, criteria: FunderCriteria): Fund
     'Average daily balance',
     criteria.minAvgDailyBalance != null,
     adb != null && criteria.minAvgDailyBalance != null && adb >= criteria.minAvgDailyBalance,
+  )
+
+  check(
+    'stacking',
+    'Stacking allowed',
+    criteria.allowStacking === false,
+    deal.stacking !== true,
+  )
+  check(
+    'weekend_deposits',
+    'Weekend deposits',
+    criteria.weekendDepositsOk === false,
+    deal.weekendDeposits !== true,
+  )
+
+  const entityType = deal.entityType?.trim().toLowerCase() ?? ''
+  const entityTypes = (criteria.entityTypes ?? []).map((value) => value.toLowerCase())
+  check('entity_type', 'Entity type', entityTypes.length > 0, Boolean(entityType && entityTypes.includes(entityType)))
+
+  const sic = deal.sic?.trim() ?? ''
+  const excludedSic = criteria.excludedSic ?? []
+  check('sic', 'SIC exclusion', excludedSic.length > 0, !sic || !excludedSic.includes(sic))
+
+  check(
+    'holdback',
+    'Holdback cap',
+    criteria.maxHoldbackPct != null,
+    deal.holdbackPct != null && criteria.maxHoldbackPct != null && deal.holdbackPct <= criteria.maxHoldbackPct,
+  )
+  check(
+    'credit',
+    'Minimum credit score',
+    criteria.minCreditScore != null,
+    deal.creditScore != null && criteria.minCreditScore != null && deal.creditScore >= criteria.minCreditScore,
+  )
+  check(
+    'bankruptcy',
+    'Bankruptcy policy',
+    criteria.bankruptcyOk === false,
+    deal.bankruptcy !== true,
+  )
+
+  const useOfFunds = deal.useOfFunds?.trim().toLowerCase() ?? ''
+  const allowedUse = (criteria.useOfFunds ?? []).map((value) => value.toLowerCase())
+  check('use_of_funds', 'Use of funds', allowedUse.length > 0, Boolean(useOfFunds && allowedUse.includes(useOfFunds)))
+
+  check(
+    'time_to_fund',
+    'Time to fund',
+    criteria.maxTimeToFundDays != null,
+    deal.timeToFundDays != null &&
+      criteria.maxTimeToFundDays != null &&
+      deal.timeToFundDays <= criteria.maxTimeToFundDays,
   )
 
   if (possible === 0) {

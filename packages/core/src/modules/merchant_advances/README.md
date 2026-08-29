@@ -15,3 +15,11 @@ MCA broker CRM module. Foundation CRUD, pipeline math, and seeded funders live h
 7. Open **MCA → Pipeline**. Search/filter stages, move a card only to a legal next stage, and confirm funded cards show paid-in %.
 
 Manual fallback also on the deal: paste a reply, mark declined, add stips. Nothing auto-submits funders from this PR.
+
+## How to demo this PR (funder matching)
+
+1. Open Sunset Diner (or create it) with industry `Auto repair`, state `TX`, AMR `142000`, TIB `36`, position `1`, requested `75000`.
+2. Open the **Matches** tab and click **Re-score funders**.
+3. Harbor Advance and Northstar Capital should appear ranked, with why-it-matched chips (industry, state, position, revenue, NSF, ADB, and the rest of the 20+ appetite fields).
+4. Check two funders. Nothing is sent — the pick list is stored for the later submit PR.
+5. Re-score is also hooked to `merchant_advances.statement.analyzed` so underwriting can refresh matches without submitting.

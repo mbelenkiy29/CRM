@@ -28,6 +28,7 @@ import {
 } from '../../../data/constants'
 import { canTransition } from '../../../lib/pipeline'
 import { CommissionSplits, type CommissionSplitRow } from '../../components/CommissionSplits'
+import { FunderMatchList, type FunderMatchRow } from '../../components/FunderMatchList'
 import { pipelineStatusVariant } from '../statusVariant'
 
 type Deal = {
@@ -97,6 +98,10 @@ type Renewal = {
 
 type Funder = { id: string; name: string | null }
 
+type MatchRow = FunderMatchRow
+
+const SELECTED_FUNDERS_KEY = (dealId: string) => `mca:selected-funders:${dealId}`
+
 type ListResponse<T> = { items?: T[] }
 
 type TabId =
@@ -143,6 +148,8 @@ export default function MerchantAdvancesDealDetailPage() {
   const [fundings, setFundings] = React.useState<Funding[]>([])
   const [renewals, setRenewals] = React.useState<Renewal[]>([])
   const [funders, setFunders] = React.useState<Funder[]>([])
+  const [matches, setMatches] = React.useState<MatchRow[]>([])
+  const [selectedFunderIds, setSelectedFunderIds] = React.useState<string[]>([])
   const [offerDraft, setOfferDraft] = React.useState({
     amount: '75000',
     factor: '1.32',
@@ -176,7 +183,7 @@ export default function MerchantAdvancesDealDetailPage() {
     setError(false)
     setNotFound(false)
     try {
-      const [dealsRes, offersRes, submissionsRes, repliesRes, fundingsRes, renewalsRes, fundersRes] = await Promise.all([
+      const [dealsRes, offersRes, submissionsRes, repliesRes, fundingsRes, renewalsRes, fundersRes, matchesRes] = await Promise.all([
         readApiResultOrThrow<ListResponse<Deal>>(`/api/merchant_advances/deals?id=${id}&pageSize=1`),
         readApiResultOrThrow<ListResponse<Offer>>(`/api/merchant_advances/offers?dealId=${id}&pageSize=100`),
         readApiResultOrThrow<ListResponse<Submission>>(`/api/merchant_advances/submissions?dealId=${id}&pageSize=100`),
@@ -184,6 +191,7 @@ export default function MerchantAdvancesDealDetailPage() {
         readApiResultOrThrow<ListResponse<Funding>>(`/api/merchant_advances/fundings?dealId=${id}&pageSize=100`),
         readApiResultOrThrow<ListResponse<Renewal>>(`/api/merchant_advances/renewals?dealId=${id}&pageSize=100`),
         readApiResultOrThrow<ListResponse<Funder>>('/api/merchant_advances/funders?pageSize=100'),
+        readApiResultOrThrow<ListResponse<MatchRow>>(`/api/merchant_advances/matches?dealId=${id}&pageSize=100&sortField=rank&sortDir=asc`),
       ])
       const nextDeal = asList<Deal>(dealsRes)[0] ?? null
       if (!nextDeal) {
@@ -198,6 +206,19 @@ export default function MerchantAdvancesDealDetailPage() {
       setFundings(asList<Funding>(fundingsRes))
       setRenewals(asList<Renewal>(renewalsRes))
       setFunders(asList<Funder>(fundersRes))
+      const nextMatches = asList<MatchRow>(matchesRes).map((match) => ({
+        ...match,
+        funderName: asList<Funder>(fundersRes).find((funder) => funder.id === match.funderId)?.name ?? match.funderId,
+        reasons: Array.isArray(match.reasons) ? match.reasons : [],
+      }))
+      setMatches(nextMatches)
+      try {
+        const stored = window.sessionStorage.getItem(SELECTED_FUNDERS_KEY(id))
+        const parsed = stored ? JSON.parse(stored) : []
+        setSelectedFunderIds(Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [])
+      } catch {
+        setSelectedFunderIds([])
+      }
     } catch {
       setError(true)
     } finally {
@@ -287,6 +308,30 @@ export default function MerchantAdvancesDealDetailPage() {
     setReplyDraft({ body: '', classification: 'other' })
   }
 
+  const toggleFunder = (funderId: string) => {
+    setSelectedFunderIds((current) => {
+      const next = current.includes(funderId)
+        ? current.filter((id) => id !== funderId)
+        : [...current, funderId]
+      window.sessionStorage.setItem(SELECTED_FUNDERS_KEY(id), JSON.stringify(next))
+      return next
+    })
+  }
+
+  const refreshMatches = async () => {
+    if (!deal) return
+    await runDealWrite(async () => {
+      const result = await apiCall('/api/merchant_advances/matches/refresh', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ dealId: deal.id }),
+      })
+      if (!result.ok) {
+        throw new Error(t('merchant_advances.detail.matches.refreshFailed'))
+      }
+    }, 'merchant_advances.detail.matches.refreshed')
+  }
+
   const writeRenewal = async (renewal: Renewal, status: string) => {
     await runDealWrite(async () => {
       await withScopedApiRequestHeaders(
@@ -363,9 +408,11 @@ export default function MerchantAdvancesDealDetailPage() {
           </TabsContent>
 
           <TabsContent value="matches" className="mt-6">
-            <TabEmptyState
-              title={t('merchant_advances.detail.matches.empty')}
-              description={t('merchant_advances.detail.matches.hint')}
+            <FunderMatchList
+              matches={matches}
+              selectedFunderIds={selectedFunderIds}
+              onToggle={toggleFunder}
+              onRefresh={() => void refreshMatches()}
             />
           </TabsContent>
 

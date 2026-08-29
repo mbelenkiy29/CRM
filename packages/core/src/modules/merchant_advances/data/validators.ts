@@ -142,6 +142,12 @@ export const renewalUpdateSchema = z.object({
 
 export const renewalDeleteSchema = z.object({ id: uuid })
 
+export const matchRefreshSchema = z.object({
+  dealId: uuid,
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+})
+
 export type DealCreateInput = z.infer<typeof dealCreateSchema>
 export type DealUpdateInput = z.infer<typeof dealUpdateSchema>
 export type FunderCreateInput = z.infer<typeof funderCreateSchema>
@@ -155,3 +161,4 @@ export type FundingCreateInput = z.infer<typeof fundingCreateSchema>
 export type ReplyCreateInput = z.infer<typeof replyCreateSchema>
 export type RenewalCreateInput = z.infer<typeof renewalCreateSchema>
 export type RenewalUpdateInput = z.infer<typeof renewalUpdateSchema>
+export type MatchRefreshInput = z.infer<typeof matchRefreshSchema>
