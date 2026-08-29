@@ -6,7 +6,7 @@ import { Page, PageBody, PageHeader } from '@open-mercato/ui/backend/Page'
 import { StatusBadge } from '@open-mercato/ui/primitives/status-badge'
 import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
-import { MCA_PIPELINE_STATUSES } from '../../data/constants'
+import { MCA_PIPELINE_STATUSES } from '../../../data/constants'
 import { pipelineStatusVariant } from '../statusVariant'
 
 type DealRow = {
