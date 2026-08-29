@@ -4,6 +4,7 @@ import {
   MCA_OFFER_STATUSES,
   MCA_PAYMENT_FREQUENCIES,
   MCA_PIPELINE_STATUSES,
+  MCA_RENEWAL_STATUSES,
   MCA_SUBMISSION_STATUSES,
   MCA_SUBMIT_METHODS,
 } from './constants'
@@ -94,5 +95,12 @@ export type FunderCreateInput = z.infer<typeof funderCreateSchema>
 export type FunderUpdateInput = z.infer<typeof funderUpdateSchema>
 export type OfferCreateInput = z.infer<typeof offerCreateSchema>
 export type OfferUpdateInput = z.infer<typeof offerUpdateSchema>
+export const renewalListQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(50),
+  status: z.enum(MCA_RENEWAL_STATUSES).optional(),
+})
+
 export type SubmissionCreateInput = z.infer<typeof submissionCreateSchema>
 export type SubmissionUpdateInput = z.infer<typeof submissionUpdateSchema>
+export type RenewalListQuery = z.infer<typeof renewalListQuerySchema>
