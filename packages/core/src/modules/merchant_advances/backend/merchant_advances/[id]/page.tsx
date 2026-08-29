@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import {
-  DetailFieldsSection,
   ErrorMessage,
   LoadingMessage,
   RecordNotFoundState,
@@ -174,6 +173,23 @@ function stipLines(value: unknown): string {
 function displayValue(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '—'
   return String(value)
+}
+
+function ReadOnlyFieldGrid({
+  fields,
+}: {
+  fields: { key: string; label: string; value: string | number | null | undefined }[]
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+      {fields.map((field) => (
+        <div key={field.key} className="rounded-md border border-border bg-card p-3">
+          <div className="text-xs text-muted-foreground">{field.label}</div>
+          <div className="mt-1 text-sm font-medium">{displayValue(field.value)}</div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 const DEAL_PATH_ID = /\/backend\/merchant_advances\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i
@@ -546,16 +562,16 @@ export default function MerchantAdvancesDealDetailPage({ params }: { params?: { 
   const latestAnalysis = analyses[0] ?? null
   const firstPass = latestAnalysis?.firstPass
   const analysisFields = [
-    { key: 'requested', label: t('merchant_advances.deals.fields.requestedAmount'), value: displayValue(firstPass?.requestedAmount ?? deal.requestedAmount) },
-    { key: 'revenue', label: t('merchant_advances.deals.fields.avgMonthlyRevenue'), value: displayValue(firstPass?.avgMonthlyRevenue ?? deal.avgMonthlyRevenue) },
-    { key: 'adb', label: t('merchant_advances.analysis.avgDailyBalance'), value: displayValue(firstPass?.avgDailyBalance) },
-    { key: 'deposits', label: t('merchant_advances.analysis.depositCount'), value: displayValue(firstPass?.depositCount) },
-    { key: 'nsf', label: t('merchant_advances.analysis.nsfCount'), value: displayValue(firstPass?.nsfCount) },
-    { key: 'negative', label: t('merchant_advances.analysis.negativeDays'), value: displayValue(firstPass?.negativeDays) },
-    { key: 'positions', label: t('merchant_advances.analysis.existingPositions'), value: displayValue(firstPass?.existingPositions ?? deal.position) },
-    { key: 'industry', label: t('merchant_advances.deals.fields.industry'), value: displayValue(firstPass?.industry ?? deal.industry) },
-    { key: 'tib', label: t('merchant_advances.deals.fields.timeInBusinessMonths'), value: displayValue(firstPass?.timeInBusinessMonths ?? deal.timeInBusinessMonths) },
-    { key: 'state', label: t('merchant_advances.deals.fields.state'), value: displayValue(firstPass?.state ?? deal.state) },
+    { key: 'requested', label: t('merchant_advances.deals.fields.requestedAmount'), value: firstPass?.requestedAmount ?? deal.requestedAmount },
+    { key: 'revenue', label: t('merchant_advances.deals.fields.avgMonthlyRevenue'), value: firstPass?.avgMonthlyRevenue ?? deal.avgMonthlyRevenue },
+    { key: 'adb', label: t('merchant_advances.analysis.avgDailyBalance'), value: firstPass?.avgDailyBalance },
+    { key: 'deposits', label: t('merchant_advances.analysis.depositCount'), value: firstPass?.depositCount },
+    { key: 'nsf', label: t('merchant_advances.analysis.nsfCount'), value: firstPass?.nsfCount },
+    { key: 'negative', label: t('merchant_advances.analysis.negativeDays'), value: firstPass?.negativeDays },
+    { key: 'positions', label: t('merchant_advances.analysis.existingPositions'), value: firstPass?.existingPositions ?? deal.position },
+    { key: 'industry', label: t('merchant_advances.deals.fields.industry'), value: firstPass?.industry ?? deal.industry },
+    { key: 'tib', label: t('merchant_advances.deals.fields.timeInBusinessMonths'), value: firstPass?.timeInBusinessMonths ?? deal.timeInBusinessMonths },
+    { key: 'state', label: t('merchant_advances.deals.fields.state'), value: firstPass?.state ?? deal.state },
   ]
 
   return (
@@ -581,15 +597,15 @@ export default function MerchantAdvancesDealDetailPage({ params }: { params?: { 
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
-            <DetailFieldsSection
+            <ReadOnlyFieldGrid
               fields={[
-                { label: t('merchant_advances.deals.fields.businessName'), value: deal.businessName },
-                { label: t('merchant_advances.deals.fields.requestedAmount'), value: deal.requestedAmount },
-                { label: t('merchant_advances.deals.fields.avgMonthlyRevenue'), value: deal.avgMonthlyRevenue },
-                { label: t('merchant_advances.deals.fields.timeInBusinessMonths'), value: deal.timeInBusinessMonths },
-                { label: t('merchant_advances.deals.fields.position'), value: deal.position },
-                { label: t('merchant_advances.deals.fields.industry'), value: deal.industry },
-                { label: t('merchant_advances.deals.fields.state'), value: deal.state },
+                { key: 'businessName', label: t('merchant_advances.deals.fields.businessName'), value: deal.businessName },
+                { key: 'requestedAmount', label: t('merchant_advances.deals.fields.requestedAmount'), value: deal.requestedAmount },
+                { key: 'avgMonthlyRevenue', label: t('merchant_advances.deals.fields.avgMonthlyRevenue'), value: deal.avgMonthlyRevenue },
+                { key: 'timeInBusinessMonths', label: t('merchant_advances.deals.fields.timeInBusinessMonths'), value: deal.timeInBusinessMonths },
+                { key: 'position', label: t('merchant_advances.deals.fields.position'), value: deal.position },
+                { key: 'industry', label: t('merchant_advances.deals.fields.industry'), value: deal.industry },
+                { key: 'state', label: t('merchant_advances.deals.fields.state'), value: deal.state },
               ]}
             />
           </TabsContent>
@@ -630,14 +646,7 @@ export default function MerchantAdvancesDealDetailPage({ params }: { params?: { 
                     </Button>
                   )}
                 />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-                  {analysisFields.map((field) => (
-                    <div key={field.key} className="rounded-md border border-border bg-card p-3">
-                      <div className="text-xs text-muted-foreground">{field.label}</div>
-                      <div className="mt-1 text-sm font-medium">{field.value}</div>
-                    </div>
-                  ))}
-                </div>
+                <ReadOnlyFieldGrid fields={analysisFields} />
                 {latestAnalysis.notes ? (
                   <p className="text-sm text-muted-foreground">{latestAnalysis.notes}</p>
                 ) : null}
@@ -850,13 +859,13 @@ export default function MerchantAdvancesDealDetailPage({ params }: { params?: { 
           <TabsContent value="funding" className="mt-6">
             {funding ? (
               <div className="flex flex-col gap-6">
-                <DetailFieldsSection
+                <ReadOnlyFieldGrid
                   fields={[
-                    { label: t('merchant_advances.funding.fundedAmount'), value: funding.fundedAmount },
-                    { label: t('merchant_advances.funding.payback'), value: funding.paybackAmount },
-                    { label: t('merchant_advances.funding.payment'), value: funding.paymentAmount },
-                    { label: t('merchant_advances.pipeline.paidIn'), value: funding.paidInPct },
-                    { label: t('merchant_advances.funding.fundedAt'), value: funding.fundedAt },
+                    { key: 'fundedAmount', label: t('merchant_advances.funding.fundedAmount'), value: funding.fundedAmount },
+                    { key: 'payback', label: t('merchant_advances.funding.payback'), value: funding.paybackAmount },
+                    { key: 'payment', label: t('merchant_advances.funding.payment'), value: funding.paymentAmount },
+                    { key: 'paidIn', label: t('merchant_advances.pipeline.paidIn'), value: funding.paidInPct },
+                    { key: 'fundedAt', label: t('merchant_advances.funding.fundedAt'), value: funding.fundedAt },
                   ]}
                 />
                 <CommissionSplits
