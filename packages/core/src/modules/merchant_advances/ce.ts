@@ -31,6 +31,14 @@ export const entities = [
     showInSidebar: false,
     fields: [],
   },
+  {
+    id: 'merchant_advances:mca_funding',
+    label: 'MCA Funding',
+    description: 'Funded offer record with payback, payment, and commission distribution.',
+    labelField: 'fundedAmount',
+    showInSidebar: false,
+    fields: [],
+  },
 ]
 
 export default entities

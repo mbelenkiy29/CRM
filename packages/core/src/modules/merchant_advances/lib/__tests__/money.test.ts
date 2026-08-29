@@ -18,4 +18,10 @@ describe('merchant_advances money helpers', () => {
     expect(splitCommissionAmounts('7500', [7, 3])).toEqual(['5250.00', '2250.00'])
     expect(splitCommissionAmounts('100.00', [1, 1, 1])).toEqual(['33.33', '33.33', '33.34'])
   })
+
+  it('assigns remainder cents to the last split row', () => {
+    expect(splitCommissionAmounts('10.00', [1, 1, 1])).toEqual(['3.33', '3.33', '3.34'])
+    expect(splitCommissionAmounts('0.01', [1, 1, 1])).toEqual(['0.00', '0.00', '0.01'])
+    expect(splitCommissionAmounts('1.00', [2, 1])).toEqual(['0.66', '0.34'])
+  })
 })
