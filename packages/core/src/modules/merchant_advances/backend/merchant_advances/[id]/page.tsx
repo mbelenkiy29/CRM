@@ -11,6 +11,8 @@ import {
   TabEmptyState,
 } from '@open-mercato/ui/backend/detail'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
+import { NextStepCallout } from '@open-mercato/ui/backend/NextStepCallout'
+import { SectionHeader } from '@open-mercato/ui/backend/SectionHeader'
 import { surfaceRecordConflict } from '@open-mercato/ui/backend/conflicts'
 import { useGuardedMutation } from '@open-mercato/ui/backend/injection/useGuardedMutation'
 import { apiCall, readApiResultOrThrow, withScopedApiRequestHeaders } from '@open-mercato/ui/backend/utils/apiCall'
@@ -99,6 +101,33 @@ type Renewal = {
 
 type Funder = { id: string; name: string | null }
 
+type FirstPass = {
+  avgMonthlyRevenue: string | null
+  avgDailyBalance: string | null
+  depositCount: number | null
+  nsfCount: number | null
+  negativeDays: number | null
+  existingPositions: number | null
+  industry: string | null
+  timeInBusinessMonths: number | null
+  position: number | null
+  state: string | null
+  requestedAmount: string | null
+  humanReviewRequired: boolean
+  autoSubmit: boolean
+}
+
+type AnalysisItem = {
+  id: string
+  model: string | null
+  confidence: string | null
+  notes: string | null
+  reviewedAt: string | null
+  reviewedByUserId: string | null
+  updatedAt: string
+  firstPass: FirstPass
+}
+
 type MatchRow = FunderMatchRow
 
 const SELECTED_FUNDERS_KEY = (dealId: string) => `mca:selected-funders:${dealId}`
@@ -134,6 +163,11 @@ function stipLines(value: unknown): string {
   return value.filter((item): item is string => typeof item === 'string').join('\n')
 }
 
+function displayValue(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '—'
+  return String(value)
+}
+
 export default function MerchantAdvancesDealDetailPage() {
   const params = useParams<{ id: string }>()
   const id = params.id
@@ -162,6 +196,7 @@ export default function MerchantAdvancesDealDetailPage() {
   })
   const [replyDraft, setReplyDraft] = React.useState({ body: '', classification: 'other' })
   const [stipDraft, setStipDraft] = React.useState('')
+  const [analyses, setAnalyses] = React.useState<AnalysisItem[]>([])
 
   const { runMutation, retryLastMutation } = useGuardedMutation({
     contextId: `merchant-advances-deal-${id}`,
@@ -184,7 +219,7 @@ export default function MerchantAdvancesDealDetailPage() {
     setError(false)
     setNotFound(false)
     try {
-      const [dealsRes, offersRes, submissionsRes, repliesRes, fundingsRes, renewalsRes, fundersRes, matchesRes] = await Promise.all([
+      const [dealsRes, offersRes, submissionsRes, repliesRes, fundingsRes, renewalsRes, fundersRes, matchesRes, analysesRes] = await Promise.all([
         readApiResultOrThrow<ListResponse<Deal>>(`/api/merchant_advances/deals?id=${id}&pageSize=1`),
         readApiResultOrThrow<ListResponse<Offer>>(`/api/merchant_advances/offers?dealId=${id}&pageSize=100`),
         readApiResultOrThrow<ListResponse<Submission>>(`/api/merchant_advances/submissions?dealId=${id}&pageSize=100`),
@@ -193,6 +228,7 @@ export default function MerchantAdvancesDealDetailPage() {
         readApiResultOrThrow<ListResponse<Renewal>>(`/api/merchant_advances/renewals?dealId=${id}&pageSize=100`),
         readApiResultOrThrow<ListResponse<Funder>>('/api/merchant_advances/funders?pageSize=100'),
         readApiResultOrThrow<ListResponse<MatchRow>>(`/api/merchant_advances/matches?dealId=${id}&pageSize=100&sortField=rank&sortDir=asc`),
+        readApiResultOrThrow<ListResponse<AnalysisItem>>(`/api/merchant_advances/analyses?dealId=${id}`),
       ])
       const nextDeal = asList<Deal>(dealsRes)[0] ?? null
       if (!nextDeal) {
@@ -207,6 +243,7 @@ export default function MerchantAdvancesDealDetailPage() {
       setFundings(asList<Funding>(fundingsRes))
       setRenewals(asList<Renewal>(renewalsRes))
       setFunders(asList<Funder>(fundersRes))
+      setAnalyses(asList<AnalysisItem>(analysesRes))
       const nextMatches = asList<MatchRow>(matchesRes).map((match) => ({
         ...match,
         funderName: asList<Funder>(fundersRes).find((funder) => funder.id === match.funderId)?.name ?? match.funderId,
@@ -379,6 +416,60 @@ export default function MerchantAdvancesDealDetailPage() {
     }, 'merchant_advances.detail.renewalUpdated')
   }
 
+  const markAnalysisReviewed = async (analysis: AnalysisItem) => {
+    try {
+      await runMutation({
+        context: {
+          formId: 'merchant_advances.statement.review',
+          resourceKind: 'merchant_advances.statement_analysis',
+          resourceId: analysis.id,
+          retryLastMutation,
+        },
+        mutationPayload: { id: analysis.id },
+        operation: async () => {
+          await withScopedApiRequestHeaders(
+            buildOptimisticLockHeader(analysis.updatedAt),
+            () => readApiResultOrThrow('/api/merchant_advances/analyses/review', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ id: analysis.id, updatedAt: analysis.updatedAt }),
+            }),
+          )
+          await load()
+          flash(t('merchant_advances.analysis.reviewedFlash'), 'success')
+        },
+      })
+    } catch (err) {
+      surfaceRecordConflict(err, t, { onRefresh: load })
+    }
+  }
+
+  const rerunAnalysis = async () => {
+    if (!deal) return
+    try {
+      await runMutation({
+        context: {
+          formId: 'merchant_advances.statement.analyze',
+          resourceKind: 'merchant_advances.statement_analysis',
+          resourceId: deal.id,
+          retryLastMutation,
+        },
+        mutationPayload: { dealId: deal.id },
+        operation: async () => {
+          await readApiResultOrThrow('/api/merchant_advances/analyses/analyze', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ dealId: deal.id, force: true }),
+          })
+          await load()
+          flash(t('merchant_advances.analysis.queuedFlash'), 'success')
+        },
+      })
+    } catch (err) {
+      surfaceRecordConflict(err, t, { onRefresh: load })
+    }
+  }
+
   if (loading) {
     return <Page><PageBody><LoadingMessage label={t('merchant_advances.common.loading')} /></PageBody></Page>
   }
@@ -401,6 +492,20 @@ export default function MerchantAdvancesDealDetailPage() {
 
   const funding = fundings[0] ?? null
   const openOffers = offers.filter((offer) => offer.status === 'open')
+  const latestAnalysis = analyses[0] ?? null
+  const firstPass = latestAnalysis?.firstPass
+  const analysisFields = [
+    { key: 'requested', label: t('merchant_advances.deals.fields.requestedAmount'), value: displayValue(firstPass?.requestedAmount ?? deal.requestedAmount) },
+    { key: 'revenue', label: t('merchant_advances.deals.fields.avgMonthlyRevenue'), value: displayValue(firstPass?.avgMonthlyRevenue ?? deal.avgMonthlyRevenue) },
+    { key: 'adb', label: t('merchant_advances.analysis.avgDailyBalance'), value: displayValue(firstPass?.avgDailyBalance) },
+    { key: 'deposits', label: t('merchant_advances.analysis.depositCount'), value: displayValue(firstPass?.depositCount) },
+    { key: 'nsf', label: t('merchant_advances.analysis.nsfCount'), value: displayValue(firstPass?.nsfCount) },
+    { key: 'negative', label: t('merchant_advances.analysis.negativeDays'), value: displayValue(firstPass?.negativeDays) },
+    { key: 'positions', label: t('merchant_advances.analysis.existingPositions'), value: displayValue(firstPass?.existingPositions ?? deal.position) },
+    { key: 'industry', label: t('merchant_advances.deals.fields.industry'), value: displayValue(firstPass?.industry ?? deal.industry) },
+    { key: 'tib', label: t('merchant_advances.deals.fields.timeInBusinessMonths'), value: displayValue(firstPass?.timeInBusinessMonths ?? deal.timeInBusinessMonths) },
+    { key: 'state', label: t('merchant_advances.deals.fields.state'), value: displayValue(firstPass?.state ?? deal.state) },
+  ]
 
   return (
     <Page>
@@ -438,11 +543,63 @@ export default function MerchantAdvancesDealDetailPage() {
             />
           </TabsContent>
 
-          <TabsContent value="statements" className="mt-6">
-            <TabEmptyState
-              title={t('merchant_advances.detail.statements.empty')}
-              description={t('merchant_advances.detail.statements.hint')}
-            />
+          <TabsContent value="statements" className="mt-6 space-y-4">
+            {!latestAnalysis ? (
+              <div className="space-y-4">
+                <TabEmptyState
+                  title={t('merchant_advances.detail.statements.empty')}
+                  description={t('merchant_advances.detail.statements.hint')}
+                />
+                <Button type="button" variant="outline" onClick={() => { void rerunAnalysis() }}>
+                  {t('merchant_advances.analysis.analyze')}
+                </Button>
+              </div>
+            ) : (
+              <>
+                <NextStepCallout
+                  title={t('merchant_advances.analysis.calloutTitle')}
+                  description={t('merchant_advances.analysis.calloutBody')}
+                  actionLabel={t('merchant_advances.analysis.markReviewed')}
+                  onAction={() => { void markAnalysisReviewed(latestAnalysis) }}
+                  disabled={Boolean(latestAnalysis.reviewedAt)}
+                  disabledMessage={latestAnalysis.reviewedAt ? t('merchant_advances.analysis.alreadyReviewed') : t('merchant_advances.analysis.noAnalysis')}
+                  status={{
+                    tone: latestAnalysis.reviewedAt ? 'success' : 'warning',
+                    label: latestAnalysis.reviewedAt
+                      ? t('merchant_advances.analysis.reviewed')
+                      : t('merchant_advances.analysis.needsReview'),
+                  }}
+                />
+                <SectionHeader
+                  title={t('merchant_advances.analysis.title')}
+                  count={analyses.length}
+                  action={(
+                    <Button type="button" variant="outline" onClick={() => { void rerunAnalysis() }}>
+                      {t('merchant_advances.analysis.rerun')}
+                    </Button>
+                  )}
+                />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                  {analysisFields.map((field) => (
+                    <div key={field.key} className="rounded-md border border-border bg-card p-3">
+                      <div className="text-xs text-muted-foreground">{field.label}</div>
+                      <div className="mt-1 text-sm font-medium">{field.value}</div>
+                    </div>
+                  ))}
+                </div>
+                {latestAnalysis.notes ? (
+                  <p className="text-sm text-muted-foreground">{latestAnalysis.notes}</p>
+                ) : null}
+                {latestAnalysis.model ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t('merchant_advances.analysis.model', {
+                      model: latestAnalysis.model,
+                      confidence: latestAnalysis.confidence ?? '—',
+                    })}
+                  </p>
+                ) : null}
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="matches" className="mt-6">
