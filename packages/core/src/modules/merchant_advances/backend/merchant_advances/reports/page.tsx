@@ -160,7 +160,7 @@ export default function MerchantAdvancesReportsPage() {
           />
           <BarChart
             title={t('merchant_advances.reports.rep')}
-            data={reps.map((row) => ({ rep: row.ownerUserId.slice(0, 8), funded: Number(row.fundedAmount) })}
+            data={reps.map((row) => ({ rep: row.ownerUserId.slice(0, 8), funded: Number(row.fundedAmount) }))}
             index="rep"
             categories={['funded']}
             emptyMessage={t('merchant_advances.reports.empty')}
