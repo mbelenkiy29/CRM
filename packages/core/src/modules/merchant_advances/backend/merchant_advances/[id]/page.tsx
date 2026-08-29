@@ -158,6 +158,15 @@ function asList<T>(value: unknown): T[] {
   return []
 }
 
+async function loadList<T>(url: string): Promise<T[]> {
+  try {
+    const result = await apiCall<ListResponse<T>>(url)
+    return result.ok ? asList<T>(result.result) : []
+  } catch {
+    return []
+  }
+}
+
 function stipLines(value: unknown): string {
   if (!Array.isArray(value)) return ''
   return value.filter((item): item is string => typeof item === 'string').join('\n')
@@ -215,38 +224,49 @@ export default function MerchantAdvancesDealDetailPage() {
   }, [funders])
 
   const load = React.useCallback(async () => {
+    if (!id) return
     setLoading(true)
     setError(false)
     setNotFound(false)
+    const dealQuery = `/api/merchant_advances/deals?id=${encodeURIComponent(id)}&pageSize=1`
+    const loadDeal = async () => {
+      const dealsRes = await readApiResultOrThrow<ListResponse<Deal>>(dealQuery)
+      return asList<Deal>(dealsRes)[0] ?? null
+    }
     try {
-      const [dealsRes, offersRes, submissionsRes, repliesRes, fundingsRes, renewalsRes, fundersRes, matchesRes, analysesRes] = await Promise.all([
-        readApiResultOrThrow<ListResponse<Deal>>(`/api/merchant_advances/deals?id=${id}&pageSize=1`),
-        readApiResultOrThrow<ListResponse<Offer>>(`/api/merchant_advances/offers?dealId=${id}&pageSize=100`),
-        readApiResultOrThrow<ListResponse<Submission>>(`/api/merchant_advances/submissions?dealId=${id}&pageSize=100`),
-        readApiResultOrThrow<ListResponse<Reply>>(`/api/merchant_advances/replies?dealId=${id}&pageSize=100`),
-        readApiResultOrThrow<ListResponse<Funding>>(`/api/merchant_advances/fundings?dealId=${id}&pageSize=100`),
-        readApiResultOrThrow<ListResponse<Renewal>>(`/api/merchant_advances/renewals?dealId=${id}&pageSize=100`),
-        readApiResultOrThrow<ListResponse<Funder>>('/api/merchant_advances/funders?pageSize=100'),
-        readApiResultOrThrow<ListResponse<MatchRow>>(`/api/merchant_advances/matches?dealId=${id}&pageSize=100&sortField=rank&sortDir=asc`),
-        readApiResultOrThrow<ListResponse<AnalysisItem>>(`/api/merchant_advances/analyses?dealId=${id}`),
-      ])
-      const nextDeal = asList<Deal>(dealsRes)[0] ?? null
+      let nextDeal: Deal | null = null
+      try {
+        nextDeal = await loadDeal()
+      } catch {
+        await new Promise((resolve) => window.setTimeout(resolve, 400))
+        nextDeal = await loadDeal()
+      }
       if (!nextDeal) {
         setNotFound(true)
         setDeal(null)
         return
       }
       setDeal(nextDeal)
-      setOffers(asList<Offer>(offersRes))
-      setSubmissions(asList<Submission>(submissionsRes))
-      setReplies(asList<Reply>(repliesRes))
-      setFundings(asList<Funding>(fundingsRes))
-      setRenewals(asList<Renewal>(renewalsRes))
-      setFunders(asList<Funder>(fundersRes))
-      setAnalyses(asList<AnalysisItem>(analysesRes))
-      const nextMatches = asList<MatchRow>(matchesRes).map((match) => ({
+      const [offers, submissions, replies, fundings, renewals, nextFunders, matchRows, analyses] = await Promise.all([
+        loadList<Offer>(`/api/merchant_advances/offers?dealId=${encodeURIComponent(id)}&pageSize=100`),
+        loadList<Submission>(`/api/merchant_advances/submissions?dealId=${encodeURIComponent(id)}&pageSize=100`),
+        loadList<Reply>(`/api/merchant_advances/replies?dealId=${encodeURIComponent(id)}&pageSize=100`),
+        loadList<Funding>(`/api/merchant_advances/fundings?dealId=${encodeURIComponent(id)}&pageSize=100`),
+        loadList<Renewal>(`/api/merchant_advances/renewals?dealId=${encodeURIComponent(id)}&pageSize=100`),
+        loadList<Funder>('/api/merchant_advances/funders?pageSize=100'),
+        loadList<MatchRow>(`/api/merchant_advances/matches?dealId=${encodeURIComponent(id)}&pageSize=100&sortField=rank&sortDir=asc`),
+        loadList<AnalysisItem>(`/api/merchant_advances/analyses?dealId=${encodeURIComponent(id)}`),
+      ])
+      setOffers(offers)
+      setSubmissions(submissions)
+      setReplies(replies)
+      setFundings(fundings)
+      setRenewals(renewals)
+      setFunders(nextFunders)
+      setAnalyses(analyses)
+      const nextMatches = matchRows.map((match) => ({
         ...match,
-        funderName: asList<Funder>(fundersRes).find((funder) => funder.id === match.funderId)?.name ?? match.funderId,
+        funderName: nextFunders.find((funder) => funder.id === match.funderId)?.name ?? match.funderId,
         reasons: Array.isArray(match.reasons) ? match.reasons : [],
       }))
       setMatches(nextMatches)
