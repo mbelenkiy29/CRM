@@ -79,6 +79,16 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
     softDeleteField: 'deletedAt',
   },
   indexer: { entityType: 'merchant_advances:mca_deal' },
+  events: {
+    module: 'merchant_advances',
+    entity: 'deal',
+    persistent: true,
+    buildPayload: (ctx) => ({
+      id: ctx.identifiers.id,
+      organizationId: ctx.identifiers.organizationId,
+      tenantId: ctx.identifiers.tenantId,
+    }),
+  },
   list: {
     schema: listSchema,
     entityId: 'merchant_advances:mca_deal',

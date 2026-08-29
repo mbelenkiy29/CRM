@@ -35,6 +35,11 @@ export default function MerchantAdvancesDealsPage() {
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
+    const dealId = new URLSearchParams(window.location.search).get('id')
+    if (dealId) router.replace(`/backend/merchant_advances/${dealId}`)
+  }, [router])
+
+  React.useEffect(() => {
     let cancelled = false
     ;(async () => {
       try {
@@ -88,7 +93,7 @@ export default function MerchantAdvancesDealsPage() {
           columns={columns}
           data={rows}
           isLoading={loading}
-          onRowClick={(row) => router.push(`/backend/merchant_advances?id=${row.id}`)}
+          onRowClick={(row) => router.push(`/backend/merchant_advances/${row.id}`)}
           emptyState={(
             <ListEmptyState
               title={t('merchant_advances.deals.empty.title')}

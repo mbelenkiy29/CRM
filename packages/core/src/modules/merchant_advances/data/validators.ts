@@ -88,6 +88,23 @@ export const submissionCreateSchema = z.object({
 export const submissionUpdateSchema = submissionCreateSchema.partial().extend({ id: uuid })
 export const submissionDeleteSchema = z.object({ id: uuid })
 
+export const statementAnalyzeSchema = z.object({
+  dealId: uuid,
+  attachmentId: uuid.optional().nullable(),
+  documentId: uuid.optional().nullable(),
+  markdown: z.string().max(200_000).optional().nullable(),
+  force: z.boolean().optional(),
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+})
+
+export const statementReviewSchema = z.object({
+  id: uuid,
+  updatedAt: z.string().optional().nullable(),
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+})
+
 export type DealCreateInput = z.infer<typeof dealCreateSchema>
 export type DealUpdateInput = z.infer<typeof dealUpdateSchema>
 export type FunderCreateInput = z.infer<typeof funderCreateSchema>
@@ -96,3 +113,5 @@ export type OfferCreateInput = z.infer<typeof offerCreateSchema>
 export type OfferUpdateInput = z.infer<typeof offerUpdateSchema>
 export type SubmissionCreateInput = z.infer<typeof submissionCreateSchema>
 export type SubmissionUpdateInput = z.infer<typeof submissionUpdateSchema>
+export type StatementAnalyzeInput = z.infer<typeof statementAnalyzeSchema>
+export type StatementReviewInput = z.infer<typeof statementReviewSchema>
