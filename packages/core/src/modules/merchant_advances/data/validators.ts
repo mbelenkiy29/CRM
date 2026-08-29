@@ -88,6 +88,46 @@ export const submissionCreateSchema = z.object({
 export const submissionUpdateSchema = submissionCreateSchema.partial().extend({ id: uuid })
 export const submissionDeleteSchema = z.object({ id: uuid })
 
+export const intakeFormProviders = ['jotform', 'gohighlevel', 'zoho', 'custom'] as const
+
+export const intakeFormSchema = z.object({
+  provider: z.enum(intakeFormProviders).optional(),
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+}).passthrough()
+
+export const intakeCommandSchema = dealCreateSchema.extend({
+  organizationId: uuid,
+  tenantId: uuid,
+  ownerEmail: z.string().email().optional().nullable(),
+  ownerFirstName: z.string().trim().max(120).optional().nullable(),
+  ownerLastName: z.string().trim().max(120).optional().nullable(),
+  ownerPhone: z.string().trim().max(50).optional().nullable(),
+  leadSourceCode: z.string().trim().max(80).optional().nullable(),
+  statementUrls: z.array(z.string().url()).optional(),
+  statementAttachmentIds: z.array(uuid).optional(),
+  applicationAttachmentIds: z.array(uuid).optional(),
+  provider: z.enum(intakeFormProviders).optional(),
+})
+
+export const issueUploadTokenSchema = z.object({
+  dealId: uuid,
+  classification: z.enum(['statement', 'application', 'id', 'voided_check', 'tax_return', 'other_stip']).optional(),
+})
+
+export const workspaceSettingsUpdateSchema = z.object({
+  defaultFromAddress: z.string().email().optional().nullable(),
+  watermarkEnabled: z.boolean().optional(),
+  uploadLinksEnabled: z.boolean().optional(),
+  uploadLinkTtlHours: z.number().int().min(1).max(720).optional(),
+  intakeWebhookSecret: z.string().trim().min(8).max(200).optional().nullable(),
+})
+
+export const workspaceSettingsSaveSchema = workspaceSettingsUpdateSchema.extend({
+  organizationId: uuid,
+  tenantId: uuid,
+})
+
 export type DealCreateInput = z.infer<typeof dealCreateSchema>
 export type DealUpdateInput = z.infer<typeof dealUpdateSchema>
 export type FunderCreateInput = z.infer<typeof funderCreateSchema>
@@ -96,3 +136,6 @@ export type OfferCreateInput = z.infer<typeof offerCreateSchema>
 export type OfferUpdateInput = z.infer<typeof offerUpdateSchema>
 export type SubmissionCreateInput = z.infer<typeof submissionCreateSchema>
 export type SubmissionUpdateInput = z.infer<typeof submissionUpdateSchema>
+export type IntakeCommandInput = z.infer<typeof intakeCommandSchema>
+export type WorkspaceSettingsSaveInput = z.infer<typeof workspaceSettingsSaveSchema>
+export type WorkspaceSettingsUpdateInput = z.infer<typeof workspaceSettingsUpdateSchema>
