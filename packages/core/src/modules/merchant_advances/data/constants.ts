@@ -61,6 +61,44 @@ export const MCA_ASSIGNMENT_METHODS = [
 
 export type McaAssignmentMethod = (typeof MCA_ASSIGNMENT_METHODS)[number]
 
+export const MCA_IMPORT_SOURCES = ['csv', 'xlsx', 'xls', 'tsv', 'zip', 'gdrive', 'email'] as const
+export type McaImportSource = (typeof MCA_IMPORT_SOURCES)[number]
+
+export const MCA_IMPORT_JOB_STATUSES = ['preview', 'running', 'completed', 'failed'] as const
+export type McaImportJobStatus = (typeof MCA_IMPORT_JOB_STATUSES)[number]
+
+export const MCA_IMPORT_FIELD_KEYS = [
+  'businessName',
+  'requestedAmount',
+  'avgMonthlyRevenue',
+  'timeInBusinessMonths',
+  'timeInBusinessYears',
+  'position',
+  'industry',
+  'state',
+  'ein',
+  'legalAddress',
+  'originator',
+  'folderName',
+  'startDate',
+] as const
+
+export type McaImportFieldKey = (typeof MCA_IMPORT_FIELD_KEYS)[number]
+
+export const MCA_IMPORT_RESULT_CSV_HEADERS = [
+  'rowIndex',
+  'businessName',
+  'dealId',
+  'dealUrl',
+  'ownerUserId',
+  'assignmentMethod',
+  'fileCount',
+  'classifications',
+  'status',
+  'failureReason',
+  'pdfFilledFields',
+] as const
+
 export const MCA_WEEKDAYS_PER_MONTH = 21
 export const MCA_DEFAULT_RENEWAL_PAID_IN_THRESHOLD = 80
 
