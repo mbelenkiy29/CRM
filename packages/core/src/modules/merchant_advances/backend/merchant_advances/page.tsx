@@ -88,7 +88,7 @@ export default function MerchantAdvancesDealsPage() {
           columns={columns}
           data={rows}
           isLoading={loading}
-          onRowClick={(row) => router.push(`/backend/merchant_advances?id=${row.id}`)}
+          onRowClick={(row) => router.push(`/backend/merchant_advances/${row.id}`)}
           emptyState={(
             <ListEmptyState
               title={t('merchant_advances.deals.empty.title')}

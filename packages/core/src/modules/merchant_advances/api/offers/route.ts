@@ -1,6 +1,10 @@
+import type { EntityManager } from '@mikro-orm/postgresql'
 import { z } from 'zod'
 import { makeCrudRoute } from '@open-mercato/shared/lib/crud/factory'
-import { McaOffer } from '../../data/entities'
+import { McaDeal, McaOffer } from '../../data/entities'
+import { type McaPaymentFrequency, type McaPipelineStatus } from '../../data/constants'
+import { calculatePayback, calculatePayment } from '../../lib/money'
+import { applyLegalPath, shortestLegalPath } from '../../lib/pipeline'
 import { offerCreateSchema, offerUpdateSchema, offerDeleteSchema } from '../../data/validators'
 import {
   createMerchantAdvancesCrudOpenApi,
@@ -39,6 +43,26 @@ const routeMetadata = {
 
 export const metadata = routeMetadata
 
+function derivedPayment(parsed: {
+  amount?: string | number | null
+  factor?: string | number | null
+  termMonths?: number | null
+  paymentAmount?: string | number | null
+  paymentFrequency?: McaPaymentFrequency | null
+}): string | null {
+  const explicit = parsed.paymentAmount
+  if (explicit !== null && explicit !== undefined && explicit !== '') {
+    return toNullableDecimal(explicit)
+  }
+  if (parsed.amount == null || parsed.factor == null || !parsed.termMonths) return null
+  try {
+    const payback = calculatePayback(parsed.amount, parsed.factor)
+    return calculatePayment(payback, parsed.termMonths, parsed.paymentFrequency ?? 'daily')
+  } catch {
+    return null
+  }
+}
+
 function transformOffer(item: unknown): unknown {
   const record = toRecord(item)
   if (!Object.keys(record).length) return item
@@ -51,7 +75,9 @@ function transformOffer(item: unknown): unknown {
     termMonths: record.term_months ?? record.termMonths ?? null,
     paymentAmount: readString(record, 'payment_amount', 'paymentAmount'),
     paymentFrequency: readString(record, 'payment_frequency', 'paymentFrequency'),
+    feesAmount: readString(record, 'fees_amount', 'feesAmount'),
     commissionPoints: readString(record, 'commission_points', 'commissionPoints'),
+    stips: record.stips ?? null,
     status: readString(record, 'status', 'status'),
     createdAt: toIso(record.created_at ?? record.createdAt),
     updatedAt: toIso(record.updated_at ?? record.updatedAt),
@@ -73,7 +99,7 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
     entityId: 'merchant_advances:mca_offer',
     fields: [
       'id', 'deal_id', 'funder_id', 'amount', 'factor', 'term_months', 'payment_amount',
-      'payment_frequency', 'commission_points', 'status', 'created_at', 'updated_at',
+      'payment_frequency', 'fees_amount', 'commission_points', 'stips', 'status', 'created_at', 'updated_at',
     ],
     sortFieldMap: { createdAt: 'created_at', updatedAt: 'updated_at', amount: 'amount' },
     buildFilters: async (query) => {
@@ -82,6 +108,28 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
       return filters
     },
     transformItem: transformOffer,
+  },
+  hooks: {
+    afterCreate: async (entity, ctx) => {
+      const offer = entity as McaOffer
+      const organizationId = offer.organizationId
+      const tenantId = offer.tenantId
+      if (!organizationId || !tenantId || !offer.dealId) return
+      const em = (ctx.container.resolve('em') as EntityManager).fork()
+      const deal = await em.findOne(McaDeal, {
+        id: offer.dealId,
+        organizationId,
+        tenantId,
+        deletedAt: null,
+      })
+      if (!deal) return
+      const from = deal.pipelineStatus as McaPipelineStatus
+      if (!['new_app', 'statements_in', 'underwriting', 'matched', 'submitted'].includes(from)) return
+      const path = shortestLegalPath(from, 'offered')
+      if (!path || !path.length) return
+      deal.pipelineStatus = applyLegalPath(deal.pipelineStatus as McaPipelineStatus, path)
+      await em.flush()
+    },
   },
   create: {
     schema: rawBodySchema,
@@ -94,7 +142,7 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
         amount: toNullableDecimal(parsed.amount),
         factor: toNullableDecimal(parsed.factor),
         termMonths: parsed.termMonths ?? null,
-        paymentAmount: toNullableDecimal(parsed.paymentAmount),
+        paymentAmount: derivedPayment(parsed),
         paymentFrequency: parsed.paymentFrequency ?? null,
         feesAmount: toNullableDecimal(parsed.feesAmount),
         commissionPoints: toNullableDecimal(parsed.commissionPoints),
@@ -113,6 +161,10 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
       if (hasOwn(parsed, 'factor')) offer.factor = toNullableDecimal(parsed.factor)
       if (hasOwn(parsed, 'termMonths')) offer.termMonths = parsed.termMonths ?? null
       if (hasOwn(parsed, 'paymentAmount')) offer.paymentAmount = toNullableDecimal(parsed.paymentAmount)
+      if (hasOwn(parsed, 'paymentFrequency')) offer.paymentFrequency = parsed.paymentFrequency ?? null
+      if (hasOwn(parsed, 'feesAmount')) offer.feesAmount = toNullableDecimal(parsed.feesAmount)
+      if (hasOwn(parsed, 'commissionPoints')) offer.commissionPoints = toNullableDecimal(parsed.commissionPoints)
+      if (hasOwn(parsed, 'stips')) offer.stips = parsed.stips ?? null
       if (hasOwn(parsed, 'status') && parsed.status) offer.status = parsed.status
     },
     response: () => ({ ok: true }),

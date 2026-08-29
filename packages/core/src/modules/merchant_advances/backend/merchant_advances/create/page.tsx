@@ -41,7 +41,7 @@ export default function CreateMcaDealPage() {
           submitLabel={t('merchant_advances.deals.create')}
           cancelHref="/backend/merchant_advances"
           onSubmit={async (values) => {
-            await createCrud('merchant_advances/deals', {
+            const created = await createCrud<Record<string, unknown>>('merchant_advances/deals', {
               businessName: String(values.businessName ?? '').trim(),
               requestedAmount: toOptionalText(values.requestedAmount),
               avgMonthlyRevenue: toOptionalText(values.avgMonthlyRevenue),
@@ -50,7 +50,8 @@ export default function CreateMcaDealPage() {
               industry: toOptionalText(values.industry),
               state: toOptionalText(values.state),
             })
-            router.push('/backend/merchant_advances')
+            const newId = created.result && typeof created.result.id === 'string' ? created.result.id : null
+            router.push(newId ? `/backend/merchant_advances/${newId}` : '/backend/merchant_advances')
           }}
         />
       </PageBody>

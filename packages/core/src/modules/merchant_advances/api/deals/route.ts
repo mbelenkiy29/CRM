@@ -1,7 +1,11 @@
 import { z } from 'zod'
+import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
 import { makeCrudRoute } from '@open-mercato/shared/lib/crud/factory'
 import { buildIlikeTerm } from '@open-mercato/shared/lib/db/buildIlikeTerm'
-import { McaDeal } from '../../data/entities'
+import type { EntityManager } from '@mikro-orm/postgresql'
+import { McaDeal, McaFunding } from '../../data/entities'
+import { assertStageTransition } from '../../lib/pipeline'
+import type { McaPipelineStatus } from '../../data/constants'
 import { dealCreateSchema, dealUpdateSchema, dealDeleteSchema } from '../../data/validators'
 import {
   createMerchantAdvancesCrudOpenApi,
@@ -64,6 +68,9 @@ function transformDeal(item: unknown): unknown {
     state: readString(record, 'state', 'state'),
     leadSourceId: readString(record, 'lead_source_id', 'leadSourceId'),
     assignmentMethod: readString(record, 'assignment_method', 'assignmentMethod'),
+    ein: readString(record, 'ein', 'ein'),
+    legalAddress: readString(record, 'legal_address', 'legalAddress'),
+    customerDealId: readString(record, 'customer_deal_id', 'customerDealId'),
     createdAt: toIso(record.created_at ?? record.createdAt),
     updatedAt: toIso(record.updated_at ?? record.updatedAt),
   }
@@ -99,6 +106,9 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
       'state',
       'lead_source_id',
       'assignment_method',
+      'ein',
+      'legal_address',
+      'customer_deal_id',
       'created_at',
       'updated_at',
     ],
@@ -110,6 +120,7 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
     },
     buildFilters: async (query) => {
       const filters: Record<string, unknown> = {}
+      if (query.id) filters.id = { $eq: query.id }
       if (query.pipelineStatus) filters.pipeline_status = { $eq: query.pipelineStatus }
       if (query.ownerUserId) filters.owner_user_id = { $eq: query.ownerUserId }
       if (query.search) {
@@ -119,6 +130,30 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
       return filters
     },
     transformItem: transformDeal,
+  },
+  hooks: {
+    afterList: async (payload, ctx) => {
+      const items = Array.isArray(payload.items) ? payload.items as Array<Record<string, unknown>> : []
+      const fundedIds = items
+        .filter((item) => item.pipelineStatus === 'funded' && typeof item.id === 'string')
+        .map((item) => item.id as string)
+      if (!fundedIds.length) return
+      const organizationId = ctx.selectedOrganizationId ?? ctx.auth?.orgId ?? null
+      const tenantId = ctx.auth?.tenantId ?? null
+      if (!organizationId || !tenantId) return
+      const em = ctx.container.resolve('em') as EntityManager
+      const fundings = await em.find(McaFunding, {
+        dealId: { $in: fundedIds },
+        organizationId,
+        tenantId,
+        deletedAt: null,
+      })
+      const paidInByDeal = new Map(fundings.map((funding) => [funding.dealId, funding.paidInPct ?? null]))
+      for (const item of items) {
+        if (typeof item.id !== 'string') continue
+        item.paidInPct = paidInByDeal.get(item.id) ?? null
+      }
+    },
   },
   create: {
     schema: rawBodySchema,
@@ -156,7 +191,14 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
       const deal = entity as McaDeal
       if (hasOwn(parsed, 'businessName') && parsed.businessName) deal.businessName = parsed.businessName
       if (hasOwn(parsed, 'ownerUserId')) deal.ownerUserId = parsed.ownerUserId ?? null
-      if (hasOwn(parsed, 'pipelineStatus') && parsed.pipelineStatus) deal.pipelineStatus = parsed.pipelineStatus
+      if (hasOwn(parsed, 'pipelineStatus') && parsed.pipelineStatus && parsed.pipelineStatus !== deal.pipelineStatus) {
+        try {
+          assertStageTransition(deal.pipelineStatus, parsed.pipelineStatus as McaPipelineStatus)
+        } catch {
+          throw new CrudHttpError(400, { error: '[internal] illegal MCA stage transition' })
+        }
+        deal.pipelineStatus = parsed.pipelineStatus
+      }
       if (hasOwn(parsed, 'requestedAmount')) deal.requestedAmount = toNullableDecimal(parsed.requestedAmount)
       if (hasOwn(parsed, 'avgMonthlyRevenue')) deal.avgMonthlyRevenue = toNullableDecimal(parsed.avgMonthlyRevenue)
       if (hasOwn(parsed, 'timeInBusinessMonths')) deal.timeInBusinessMonths = parsed.timeInBusinessMonths ?? null

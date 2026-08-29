@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
 import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import { DataTable } from '@open-mercato/ui/backend/DataTable'
@@ -26,6 +27,7 @@ type OffersResponse = {
 
 export default function MerchantAdvancesOffersPage() {
   const t = useT()
+  const router = useRouter()
   const [rows, setRows] = React.useState<OfferRow[]>([])
   const [loading, setLoading] = React.useState(true)
 
@@ -83,6 +85,9 @@ export default function MerchantAdvancesOffersPage() {
           columns={columns}
           data={rows}
           isLoading={loading}
+          onRowClick={(row) => {
+            if (row.dealId) router.push(`/backend/merchant_advances/${row.dealId}`)
+          }}
           emptyState={(
             <ListEmptyState
               title={t('merchant_advances.offers.empty.title')}

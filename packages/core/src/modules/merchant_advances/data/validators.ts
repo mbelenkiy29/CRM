@@ -4,6 +4,8 @@ import {
   MCA_OFFER_STATUSES,
   MCA_PAYMENT_FREQUENCIES,
   MCA_PIPELINE_STATUSES,
+  MCA_RENEWAL_STATUSES,
+  MCA_REPLY_CLASSIFICATIONS,
   MCA_SUBMISSION_STATUSES,
   MCA_SUBMIT_METHODS,
 } from './constants'
@@ -88,6 +90,58 @@ export const submissionCreateSchema = z.object({
 export const submissionUpdateSchema = submissionCreateSchema.partial().extend({ id: uuid })
 export const submissionDeleteSchema = z.object({ id: uuid })
 
+export const fundingSplitSchema = z.object({
+  userId: uuid.optional().nullable(),
+  role: z.string().trim().max(80).optional().nullable(),
+  points: z.union([z.string(), z.number()]),
+})
+
+export const fundingCreateSchema = z.object({
+  offerId: uuid,
+  fundedAmount: money,
+  fundedAt: z.string().optional().nullable(),
+  currency: z.string().trim().max(8).optional().nullable(),
+  splits: z.array(fundingSplitSchema).optional(),
+  dealUpdatedAt: z.string().optional().nullable(),
+  offerUpdatedAt: z.string().optional().nullable(),
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+})
+
+export const fundingDeleteSchema = z.object({ id: uuid })
+
+export const replyCreateSchema = z.object({
+  dealId: uuid,
+  submissionId: uuid.optional().nullable(),
+  rawSource: z.enum(['email', 'api', 'manual']).optional(),
+  classification: z.enum(MCA_REPLY_CLASSIFICATIONS).optional(),
+  rawBody: z.string().trim().max(20000).optional().nullable(),
+  parsedPayload: z.record(z.string(), z.unknown()).optional().nullable(),
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+})
+
+export const replyUpdateSchema = replyCreateSchema.partial().extend({ id: uuid })
+export const replyDeleteSchema = z.object({ id: uuid })
+
+export const renewalCreateSchema = z.object({
+  dealId: uuid,
+  fundingId: uuid,
+  merchantCompanyId: uuid.optional().nullable(),
+  paidInPct: money,
+  status: z.enum(MCA_RENEWAL_STATUSES).optional(),
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+})
+
+export const renewalUpdateSchema = z.object({
+  id: uuid,
+  status: z.enum(MCA_RENEWAL_STATUSES),
+  dealUpdatedAt: z.string().optional().nullable(),
+})
+
+export const renewalDeleteSchema = z.object({ id: uuid })
+
 export type DealCreateInput = z.infer<typeof dealCreateSchema>
 export type DealUpdateInput = z.infer<typeof dealUpdateSchema>
 export type FunderCreateInput = z.infer<typeof funderCreateSchema>
@@ -96,3 +150,8 @@ export type OfferCreateInput = z.infer<typeof offerCreateSchema>
 export type OfferUpdateInput = z.infer<typeof offerUpdateSchema>
 export type SubmissionCreateInput = z.infer<typeof submissionCreateSchema>
 export type SubmissionUpdateInput = z.infer<typeof submissionUpdateSchema>
+export type FundingSplitInput = z.infer<typeof fundingSplitSchema>
+export type FundingCreateInput = z.infer<typeof fundingCreateSchema>
+export type ReplyCreateInput = z.infer<typeof replyCreateSchema>
+export type RenewalCreateInput = z.infer<typeof renewalCreateSchema>
+export type RenewalUpdateInput = z.infer<typeof renewalUpdateSchema>

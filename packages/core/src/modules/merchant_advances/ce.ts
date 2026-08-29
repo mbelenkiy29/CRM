@@ -31,6 +31,30 @@ export const entities = [
     showInSidebar: false,
     fields: [],
   },
+  {
+    id: 'merchant_advances:mca_funding',
+    label: 'MCA Funding',
+    description: 'Funded offer record with payback, payment, and commission distribution.',
+    labelField: 'fundedAmount',
+    showInSidebar: false,
+    fields: [],
+  },
+  {
+    id: 'merchant_advances:mca_funder_reply',
+    label: 'MCA Funder Reply',
+    description: 'Manual or inbound funder reply on an MCA deal.',
+    labelField: 'classification',
+    showInSidebar: false,
+    fields: [],
+  },
+  {
+    id: 'merchant_advances:mca_renewal',
+    label: 'MCA Renewal',
+    description: 'Paid-in renewal watch record.',
+    labelField: 'status',
+    showInSidebar: false,
+    fields: [],
+  },
 ]
 
 export default entities

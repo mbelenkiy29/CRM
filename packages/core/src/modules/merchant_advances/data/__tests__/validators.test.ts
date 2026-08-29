@@ -1,0 +1,38 @@
+import { fundingCreateSchema, renewalUpdateSchema, replyCreateSchema } from '../validators'
+
+const OFFER_ID = '018f1a2b-3c4d-4000-8000-000000000001'
+const DEAL_ID = '018f1a2b-3c4d-4000-8000-000000000002'
+
+describe('merchant_advances workspace validators', () => {
+  it('accepts a funding create payload with offer id', () => {
+    const parsed = fundingCreateSchema.parse({ offerId: OFFER_ID })
+    expect(parsed.offerId).toBe(OFFER_ID)
+  })
+
+  it('accepts renewal write-back statuses', () => {
+    for (const status of ['contacted', 'renewed', 'lost'] as const) {
+      expect(renewalUpdateSchema.parse({
+        id: DEAL_ID,
+        status,
+      }).status).toBe(status)
+    }
+  })
+
+  it('rejects an unknown renewal status', () => {
+    expect(() => renewalUpdateSchema.parse({
+      id: DEAL_ID,
+      status: 'funded',
+    })).toThrow()
+  })
+
+  it('accepts a pasted manual reply', () => {
+    const parsed = replyCreateSchema.parse({
+      dealId: DEAL_ID,
+      rawSource: 'manual',
+      classification: 'other',
+      rawBody: 'Harbor Advance: need voided check',
+    })
+    expect(parsed.rawSource).toBe('manual')
+  })
+})
+
