@@ -1,0 +1,27 @@
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
+import type { OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
+import { aggregateLeads } from '../../../lib/reports/aggregates'
+import { reportsRouteMetadata, resolveReportSnapshot } from '../routeHelper'
+
+export const metadata = reportsRouteMetadata
+
+export async function GET(request: Request) {
+  const resolved = await resolveReportSnapshot(request)
+  if (!resolved.ok) return resolved.response
+  return NextResponse.json({
+    demo: resolved.demo,
+    rows: aggregateLeads(resolved.snapshot),
+  })
+}
+
+export const openApi: OpenApiRouteDoc = {
+  tag: 'Merchant Advances',
+  summary: 'MCA lead analytics',
+  methods: {
+    GET: {
+      summary: 'Conversion, CAC, ROI, and cost per funded by source or batch',
+      responses: [{ status: 200, description: 'Lead rows', schema: z.object({ demo: z.boolean(), rows: z.array(z.object({}).passthrough()) }) }],
+    },
+  },
+}

@@ -48,3 +48,9 @@ Manual fallback also on the deal: paste a reply, mark declined, add stips. Nothi
 3. Offers tab shows amount `75000.00`, factor `1.32`, term `6`, payment `585.00` (extracted, not recalculated), 10 points, and the two stips. Pipeline moves to **Offers in**.
 4. Replies tab keeps the raw body plus parsed terms. Unknowns stay classified as Other and never send a submission.
 5. A signed unauthenticated post uses `webhook-signature: t=<unix>,v1=<hex>` with `MCA_REPLIES_INBOUND_SECRET` and must include `organizationId` + `tenantId`. Structured `{ "status": "offered", "amount": "75000", "factor": "1.32", "termMonths": 6 }` skips email heuristics.
+
+## How to demo this PR (reports)
+
+1. Sign in as `admin@acme.com`. Open **MCA → Reports**. Charts should be non-zero (live deals or the labeled demo fixture).
+2. Export deals CSV and funded CSV. SSN-shaped values such as `123-45-6789` are replaced with `[redacted]`.
+3. A manager/rep token without `merchant_advances.reports.view` gets 403 on `/api/merchant_advances/reports/*` and does not see the Reports nav item.
