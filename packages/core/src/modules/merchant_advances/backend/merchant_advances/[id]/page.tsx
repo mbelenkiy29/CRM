@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from 'react'
-import { useParams } from 'next/navigation'
 import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import {
   DetailFieldsSection,
@@ -177,9 +176,20 @@ function displayValue(value: string | number | null | undefined): string {
   return String(value)
 }
 
-export default function MerchantAdvancesDealDetailPage() {
-  const params = useParams<{ id: string }>()
-  const id = params.id
+const DEAL_PATH_ID = /\/backend\/merchant_advances\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i
+
+function readDealIdFromLocation(): string | null {
+  if (typeof window === 'undefined') return null
+  const match = window.location.pathname.match(DEAL_PATH_ID)
+  return match?.[1] ?? null
+}
+
+export default function MerchantAdvancesDealDetailPage({ params }: { params?: { id?: string } }) {
+  const [id, setId] = React.useState<string | null>(() => (
+    params && typeof params === 'object' && typeof params.id === 'string' && params.id
+      ? params.id
+      : null
+  ))
   const t = useT()
   const [tab, setTab] = React.useState<TabId>('overview')
   const [loading, setLoading] = React.useState(true)
@@ -212,9 +222,9 @@ export default function MerchantAdvancesDealDetailPage() {
     blockedMessage: t('merchant_advances.errors.saveBlocked'),
   })
   const mutationContext = React.useMemo(() => ({
-    formId: `merchant-advances-deal-${id}`,
+    formId: `merchant-advances-deal-${id ?? 'pending'}`,
     resourceKind: 'merchant_advances.deal',
-    resourceId: id,
+    resourceId: id ?? '',
     retryLastMutation,
   }), [id, retryLastMutation])
 
@@ -224,11 +234,19 @@ export default function MerchantAdvancesDealDetailPage() {
   }, [funders])
 
   const load = React.useCallback(async () => {
-    if (!id) return
+    const dealId = id ?? readDealIdFromLocation()
+    if (!dealId) {
+      setDeal(null)
+      setNotFound(true)
+      setError(false)
+      setLoading(false)
+      return
+    }
+    if (id !== dealId) setId(dealId)
     setLoading(true)
     setError(false)
     setNotFound(false)
-    const dealQuery = `/api/merchant_advances/deals?id=${encodeURIComponent(id)}&pageSize=1`
+    const dealQuery = `/api/merchant_advances/deals?id=${encodeURIComponent(dealId)}&pageSize=1`
     const loadDeal = async () => {
       const dealsRes = await readApiResultOrThrow<ListResponse<Deal>>(dealQuery)
       return asList<Deal>(dealsRes)[0] ?? null
@@ -248,14 +266,14 @@ export default function MerchantAdvancesDealDetailPage() {
       }
       setDeal(nextDeal)
       const [offers, submissions, replies, fundings, renewals, nextFunders, matchRows, analyses] = await Promise.all([
-        loadList<Offer>(`/api/merchant_advances/offers?dealId=${encodeURIComponent(id)}&pageSize=100`),
-        loadList<Submission>(`/api/merchant_advances/submissions?dealId=${encodeURIComponent(id)}&pageSize=100`),
-        loadList<Reply>(`/api/merchant_advances/replies?dealId=${encodeURIComponent(id)}&pageSize=100`),
-        loadList<Funding>(`/api/merchant_advances/fundings?dealId=${encodeURIComponent(id)}&pageSize=100`),
-        loadList<Renewal>(`/api/merchant_advances/renewals?dealId=${encodeURIComponent(id)}&pageSize=100`),
+        loadList<Offer>(`/api/merchant_advances/offers?dealId=${encodeURIComponent(dealId)}&pageSize=100`),
+        loadList<Submission>(`/api/merchant_advances/submissions?dealId=${encodeURIComponent(dealId)}&pageSize=100`),
+        loadList<Reply>(`/api/merchant_advances/replies?dealId=${encodeURIComponent(dealId)}&pageSize=100`),
+        loadList<Funding>(`/api/merchant_advances/fundings?dealId=${encodeURIComponent(dealId)}&pageSize=100`),
+        loadList<Renewal>(`/api/merchant_advances/renewals?dealId=${encodeURIComponent(dealId)}&pageSize=100`),
         loadList<Funder>('/api/merchant_advances/funders?pageSize=100'),
-        loadList<MatchRow>(`/api/merchant_advances/matches?dealId=${encodeURIComponent(id)}&pageSize=100&sortField=rank&sortDir=asc`),
-        loadList<AnalysisItem>(`/api/merchant_advances/analyses?dealId=${encodeURIComponent(id)}`),
+        loadList<MatchRow>(`/api/merchant_advances/matches?dealId=${encodeURIComponent(dealId)}&pageSize=100&sortField=rank&sortDir=asc`),
+        loadList<AnalysisItem>(`/api/merchant_advances/analyses?dealId=${encodeURIComponent(dealId)}`),
       ])
       setOffers(offers)
       setSubmissions(submissions)
@@ -271,7 +289,7 @@ export default function MerchantAdvancesDealDetailPage() {
       }))
       setMatches(nextMatches)
       try {
-        const stored = window.sessionStorage.getItem(SELECTED_FUNDERS_KEY(id))
+        const stored = window.sessionStorage.getItem(SELECTED_FUNDERS_KEY(dealId))
         const parsed = stored ? JSON.parse(stored) : []
         setSelectedFunderIds(Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [])
       } catch {
@@ -285,8 +303,21 @@ export default function MerchantAdvancesDealDetailPage() {
   }, [id])
 
   React.useEffect(() => {
+    const fromPath = readDealIdFromLocation()
+    if (fromPath) {
+      setId((current) => current ?? fromPath)
+      return
+    }
+    if (!id) {
+      setNotFound(true)
+      setLoading(false)
+    }
+  }, [id])
+
+  React.useEffect(() => {
+    if (!id) return
     void load()
-  }, [load])
+  }, [id, load])
 
   const runDealWrite = async (operation: () => Promise<unknown>, successKey: string) => {
     try {
