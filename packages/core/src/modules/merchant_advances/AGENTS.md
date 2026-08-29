@@ -13,6 +13,7 @@ Design of record: [`.ai/specs/2026-08-29-mca-crm-platform.md`](../../../../../.a
 5. MUST hide reports behind `merchant_advances.reports.view`.
 6. MUST use `findWithDecryption` for EIN, legal address, and reply bodies.
 7. MUST run money math through `lib/money.ts` and `lib/paidIn.ts`.
+8. MUST nest backend pages under `backend/merchant_advances/` so URLs stay unique (never `backend/settings`).
 
 ## Ask First
 

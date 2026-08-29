@@ -5,6 +5,27 @@ Master spec: [`.ai/specs/2026-08-29-mca-crm-platform.md`](../2026-08-29-mca-crm-
 Foundation branch: `cursor/mca-crm-platform-5aaa`  
 Worktree root: `.worktrees/` (gitignored)
 
+Created from foundation `4bcd7781c` (update after rebases):
+
+| Branch | Path |
+|--------|------|
+| `cursor/mca-application-intake-5aaa` | `.worktrees/mca-application-intake` |
+| `cursor/mca-bulk-import-5aaa` | `.worktrees/mca-bulk-import` |
+| `cursor/mca-statement-underwriting-5aaa` | `.worktrees/mca-statement-underwriting` |
+| `cursor/mca-funder-matching-5aaa` | `.worktrees/mca-funder-matching` |
+| `cursor/mca-multi-funder-submit-5aaa` | `.worktrees/mca-multi-funder-submit` |
+| `cursor/mca-document-protection-5aaa` | `.worktrees/mca-document-protection` |
+| `cursor/mca-reply-parsing-5aaa` | `.worktrees/mca-reply-parsing` |
+| `cursor/mca-pipeline-offers-5aaa` | `.worktrees/mca-pipeline-offers` |
+| `cursor/mca-renewals-5aaa` | `.worktrees/mca-renewals` |
+| `cursor/mca-commissions-5aaa` | `.worktrees/mca-commissions` |
+| `cursor/mca-duplicate-protection-5aaa` | `.worktrees/mca-duplicate-protection` |
+| `cursor/mca-reporting-5aaa` | `.worktrees/mca-reporting` |
+| `cursor/mca-team-ops-pwa-5aaa` | `.worktrees/mca-team-ops-pwa` |
+| `cursor/mca-optional-addons-5aaa` | `.worktrees/mca-optional-addons` |
+
+Backend pages MUST live under `packages/core/src/modules/merchant_advances/backend/merchant_advances/` (`/backend/settings` is owned by auth).
+
 **Rule:** Foundation owns `data/entities.ts`, `acl.ts`, `events.ts`, `encryption.ts`, and shared `lib/*` math. Feature worktrees MUST NOT edit those files unless the plan's Interfaces block names a new column. Add commands, APIs, workers, pages, and tests in feature-owned paths.
 
 | # | Feature | Branch | Plan | Depends on |
