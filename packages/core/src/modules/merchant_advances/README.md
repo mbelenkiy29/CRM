@@ -23,3 +23,11 @@ Manual fallback also on the deal: paste a reply, mark declined, add stips. Nothi
 3. Harbor Advance and Northstar Capital should appear ranked, with why-it-matched chips (industry, state, position, revenue, NSF, ADB, and the rest of the 20+ appetite fields).
 4. Check two funders. Nothing is sent — the pick list is stored for the later submit PR.
 5. Re-score is also hooked to `merchant_advances.statement.analyzed` so underwriting can refresh matches without submitting.
+
+## How to demo this PR (submit + stamps + duplicates)
+
+1. On Sunset Diner, re-score matches and check Harbor Advance and Northstar Capital.
+2. Click **Submit selected funders**.
+3. Submissions tab shows two rows (email queued or webhook sent / API deferred). Protected copies are extra `mca_documents` rows with `is_original=false`; originals stay clean.
+4. Click submit again for the same funders: the API returns 409 `duplicate_funder_submission` and no extra send happens.
+5. A funder with `requiresUnstampedStatements` skips the stamp. Live HTTP APIs stay `api_deferred`.

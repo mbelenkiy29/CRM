@@ -1,4 +1,4 @@
-import { fundingCreateSchema, renewalUpdateSchema, replyCreateSchema } from '../validators'
+import { fundingCreateSchema, renewalUpdateSchema, replyCreateSchema, submitSendSchema } from '../validators'
 
 const OFFER_ID = '018f1a2b-3c4d-4000-8000-000000000001'
 const DEAL_ID = '018f1a2b-3c4d-4000-8000-000000000002'
@@ -23,6 +23,17 @@ describe('merchant_advances workspace validators', () => {
       id: DEAL_ID,
       status: 'funded',
     })).toThrow()
+  })
+
+  it('requires at least one funder id on submit', () => {
+    expect(() => submitSendSchema.parse({
+      dealId: DEAL_ID,
+      funderIds: [],
+    })).toThrow()
+    expect(submitSendSchema.parse({
+      dealId: DEAL_ID,
+      funderIds: [OFFER_ID],
+    }).funderIds).toEqual([OFFER_ID])
   })
 
   it('accepts a pasted manual reply', () => {

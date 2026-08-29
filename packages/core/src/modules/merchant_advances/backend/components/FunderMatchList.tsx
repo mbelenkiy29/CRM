@@ -25,6 +25,7 @@ type FunderMatchListProps = {
   selectedFunderIds: string[]
   onToggle: (funderId: string) => void
   onRefresh: () => void
+  onSubmit?: () => void
   refreshing?: boolean
 }
 
@@ -33,6 +34,7 @@ export function FunderMatchList({
   selectedFunderIds,
   onToggle,
   onRefresh,
+  onSubmit,
   refreshing,
 }: FunderMatchListProps) {
   const t = useT()
@@ -57,9 +59,16 @@ export function FunderMatchList({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">{t('merchant_advances.detail.matches.pickHint')}</p>
-        <Button type="button" variant="outline" onClick={onRefresh} disabled={refreshing}>
-          {t('merchant_advances.detail.matches.refresh')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={onRefresh} disabled={refreshing}>
+            {t('merchant_advances.detail.matches.refresh')}
+          </Button>
+          {onSubmit ? (
+            <Button type="button" onClick={onSubmit} disabled={!selectedFunderIds.length || refreshing}>
+              {t('merchant_advances.detail.submissions.submitSelected')}
+            </Button>
+          ) : null}
+        </div>
       </div>
       <ul className="space-y-3">
         {matches.map((match) => {

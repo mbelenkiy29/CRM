@@ -142,6 +142,13 @@ export const renewalUpdateSchema = z.object({
 
 export const renewalDeleteSchema = z.object({ id: uuid })
 
+export const submitSendSchema = z.object({
+  dealId: uuid,
+  funderIds: z.array(uuid).min(1).max(20),
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+})
+
 export const matchRefreshSchema = z.object({
   dealId: uuid,
   organizationId: uuid.optional(),
@@ -162,3 +169,4 @@ export type ReplyCreateInput = z.infer<typeof replyCreateSchema>
 export type RenewalCreateInput = z.infer<typeof renewalCreateSchema>
 export type RenewalUpdateInput = z.infer<typeof renewalUpdateSchema>
 export type MatchRefreshInput = z.infer<typeof matchRefreshSchema>
+export type SubmitSendInput = z.infer<typeof submitSendSchema>

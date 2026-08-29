@@ -318,6 +318,43 @@ export default function MerchantAdvancesDealDetailPage() {
     })
   }
 
+  const submitSelected = async () => {
+    if (!deal || !selectedFunderIds.length) return
+    await runDealWrite(async () => {
+      const result = await apiCall<{ results?: Array<{ error?: string | null }> }>(
+        '/api/merchant_advances/submissions/send',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ dealId: deal.id, funderIds: selectedFunderIds }),
+        },
+      )
+      if (result.status === 409) {
+        throw new Error(t('merchant_advances.errors.duplicateSubmission'))
+      }
+      if (!result.ok) {
+        throw new Error(t('merchant_advances.detail.submissions.submitFailed'))
+      }
+    }, 'merchant_advances.detail.submissions.submitted')
+  }
+
+  const resubmitFunder = async (funderId: string | null) => {
+    if (!deal || !funderId) return
+    await runDealWrite(async () => {
+      const result = await apiCall(
+        '/api/merchant_advances/submissions/send',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ dealId: deal.id, funderIds: [funderId] }),
+        },
+      )
+      if (!result.ok) {
+        throw new Error(t('merchant_advances.detail.submissions.submitFailed'))
+      }
+    }, 'merchant_advances.detail.submissions.submitted')
+  }
+
   const refreshMatches = async () => {
     if (!deal) return
     await runDealWrite(async () => {
@@ -413,6 +450,7 @@ export default function MerchantAdvancesDealDetailPage() {
               selectedFunderIds={selectedFunderIds}
               onToggle={toggleFunder}
               onRefresh={() => void refreshMatches()}
+              onSubmit={() => void submitSelected()}
             />
           </TabsContent>
 
@@ -424,6 +462,7 @@ export default function MerchantAdvancesDealDetailPage() {
                     <th className="py-2 text-left">{t('merchant_advances.funders.columns.name')}</th>
                     <th className="py-2 text-left">{t('merchant_advances.funders.columns.method')}</th>
                     <th className="py-2 text-left">{t('merchant_advances.offers.columns.status')}</th>
+                    <th className="py-2" />
                   </tr>
                 </thead>
                 <tbody>
@@ -432,6 +471,13 @@ export default function MerchantAdvancesDealDetailPage() {
                       <td className="py-2">{funderName(row.funderId)}</td>
                       <td className="py-2">{row.method ? t(`merchant_advances.method.${row.method}`) : '—'}</td>
                       <td className="py-2">{row.status ?? '—'}</td>
+                      <td className="py-2 text-right">
+                        {row.status === 'error' && row.funderId ? (
+                          <Button type="button" size="sm" variant="outline" onClick={() => void resubmitFunder(row.funderId)}>
+                            {t('merchant_advances.detail.submissions.resubmit')}
+                          </Button>
+                        ) : null}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
