@@ -11,6 +11,7 @@ const events = [
   { id: 'merchant_advances.submission.created', label: 'MCA Submission Created', entity: 'submission', category: 'crud', clientBroadcast: true },
   { id: 'merchant_advances.submission.sent', label: 'MCA Submission Sent', entity: 'submission', category: 'lifecycle', clientBroadcast: true },
   { id: 'merchant_advances.submission.failed', label: 'MCA Submission Failed', entity: 'submission', category: 'lifecycle', clientBroadcast: true },
+  { id: 'merchant_advances.reply.inbound_received', label: 'MCA Funder Reply Inbound', entity: 'reply', category: 'lifecycle' },
   { id: 'merchant_advances.reply.parsed', label: 'MCA Funder Reply Parsed', entity: 'reply', category: 'lifecycle', clientBroadcast: true },
   { id: 'merchant_advances.offer.created', label: 'MCA Offer Created', entity: 'offer', category: 'crud', clientBroadcast: true },
   { id: 'merchant_advances.funding.created', label: 'MCA Funding Created', entity: 'funding', category: 'crud', clientBroadcast: true },

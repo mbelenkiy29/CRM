@@ -149,6 +149,33 @@ export const submitSendSchema = z.object({
   tenantId: uuid.optional(),
 })
 
+export const replyInboundSchema = z.object({
+  subject: z.string().trim().max(500).optional().nullable(),
+  body: z.string().trim().max(20000).optional().nullable(),
+  from: z.string().trim().max(320).optional().nullable(),
+  to: z.string().trim().max(320).optional().nullable(),
+  attachments: z.array(z.object({
+    filename: z.string().trim().max(300).optional(),
+    contentType: z.string().trim().max(200).optional(),
+  })).max(20).optional(),
+  dealId: uuid.optional().nullable(),
+  funderId: uuid.optional().nullable(),
+  funderReference: z.string().trim().max(200).optional().nullable(),
+  source: z.enum(['email', 'api', 'manual']).optional(),
+  status: z.enum(['offered', 'declined', 'stips', 'accepted', 'sent']).optional().nullable(),
+  amount: money,
+  factor: money,
+  termMonths: z.number().int().min(1).max(120).optional().nullable(),
+  paymentAmount: money,
+  paymentFrequency: z.enum(MCA_PAYMENT_FREQUENCIES).optional().nullable(),
+  feesAmount: money,
+  commissionPoints: money,
+  stips: z.array(z.string().trim().max(300)).max(30).optional().nullable(),
+  declineReason: z.string().trim().max(2000).optional().nullable(),
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+})
+
 export const matchRefreshSchema = z.object({
   dealId: uuid,
   organizationId: uuid.optional(),
@@ -170,3 +197,4 @@ export type RenewalCreateInput = z.infer<typeof renewalCreateSchema>
 export type RenewalUpdateInput = z.infer<typeof renewalUpdateSchema>
 export type MatchRefreshInput = z.infer<typeof matchRefreshSchema>
 export type SubmitSendInput = z.infer<typeof submitSendSchema>
+export type ReplyInboundInput = z.infer<typeof replyInboundSchema>

@@ -72,6 +72,7 @@ type Reply = {
   classification: string | null
   rawSource: string | null
   rawBody: string | null
+  parsedPayload: Record<string, unknown> | null
   createdAt: string | null
 }
 
@@ -520,11 +521,24 @@ export default function MerchantAdvancesDealDetailPage() {
                       {reply.classification ? t(`merchant_advances.reply.${reply.classification}`) : '—'}
                     </div>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{reply.rawBody ?? '—'}</p>
+                    {reply.parsedPayload ? (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {t('merchant_advances.detail.replies.parsed')}: {[
+                          reply.parsedPayload.amount,
+                          reply.parsedPayload.factor,
+                          reply.parsedPayload.termMonths,
+                          reply.parsedPayload.paymentAmount,
+                        ].filter((value) => value != null && value !== '').join(' · ')}
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
             ) : (
-              <TabEmptyState title={t('merchant_advances.detail.replies.empty')} />
+              <TabEmptyState
+                title={t('merchant_advances.detail.replies.empty')}
+                description={t('merchant_advances.detail.replies.hint')}
+              />
             )}
           </TabsContent>
 

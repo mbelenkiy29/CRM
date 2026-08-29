@@ -31,3 +31,20 @@ Manual fallback also on the deal: paste a reply, mark declined, add stips. Nothi
 3. Submissions tab shows two rows (email queued or webhook sent / API deferred). Protected copies are extra `mca_documents` rows with `is_original=false`; originals stay clean.
 4. Click submit again for the same funders: the API returns 409 `duplicate_funder_submission` and no extra send happens.
 5. A funder with `requiresUnstampedStatements` skips the stamp. Live HTTP APIs stay `api_deferred`.
+
+## How to demo this PR (reply parsing)
+
+1. Submit Sunset Diner to Harbor Advance (or any funder) so a recent submission row exists.
+2. `POST /api/merchant_advances/replies/inbound` as admin with:
+
+```json
+{
+  "from": "uw@harboradvance.example",
+  "subject": "Sunset Diner approved",
+  "body": "Approved. $75,000 at 1.32 for 6 months, daily $585. 10 points. Need 4 months bank statements and driver's license"
+}
+```
+
+3. Offers tab shows amount `75000.00`, factor `1.32`, term `6`, payment `585.00` (extracted, not recalculated), 10 points, and the two stips. Pipeline moves to **Offers in**.
+4. Replies tab keeps the raw body plus parsed terms. Unknowns stay classified as Other and never send a submission.
+5. A signed unauthenticated post uses `webhook-signature: t=<unix>,v1=<hex>` with `MCA_REPLIES_INBOUND_SECRET` and must include `organizationId` + `tenantId`. Structured `{ "status": "offered", "amount": "75000", "factor": "1.32", "termMonths": 6 }` skips email heuristics.

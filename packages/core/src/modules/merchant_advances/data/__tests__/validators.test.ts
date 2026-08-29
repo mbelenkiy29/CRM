@@ -1,4 +1,4 @@
-import { fundingCreateSchema, renewalUpdateSchema, replyCreateSchema, submitSendSchema } from '../validators'
+import { fundingCreateSchema, renewalUpdateSchema, replyCreateSchema, replyInboundSchema, submitSendSchema } from '../validators'
 
 const OFFER_ID = '018f1a2b-3c4d-4000-8000-000000000001'
 const DEAL_ID = '018f1a2b-3c4d-4000-8000-000000000002'
@@ -44,6 +44,15 @@ describe('merchant_advances workspace validators', () => {
       rawBody: 'Harbor Advance: need voided check',
     })
     expect(parsed.rawSource).toBe('manual')
+  })
+
+  it('accepts an inbound funder email payload', () => {
+    const parsed = replyInboundSchema.parse({
+      from: 'uw@harboradvance.example',
+      subject: 'Sunset Diner approved',
+      body: 'Approved. $75,000 at 1.32 for 6 months, daily $585. 10 points.',
+    })
+    expect(parsed.from).toContain('harbor')
   })
 })
 
