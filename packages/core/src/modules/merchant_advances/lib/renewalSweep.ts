@@ -23,7 +23,6 @@ export const MCA_OPEN_PIPELINE_STATUSES: readonly McaPipelineStatus[] = [
   'contracted',
 ]
 
-const MANUAL_RENEWAL_STATUSES = new Set<McaRenewalStatus>(['contacted', 'renewed', 'lost'])
 const PAYMENT_FREQUENCIES = new Set<string>(MCA_PAYMENT_FREQUENCIES)
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 const MS_PER_WEEK = 7 * MS_PER_DAY

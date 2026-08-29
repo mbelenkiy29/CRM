@@ -60,7 +60,16 @@ function merchantName(deal: SweepDealRecord | undefined): string | null {
   return deal.merchantNameSnapshot ?? deal.businessName ?? null
 }
 
-function toDealRecord(deal: McaDeal): SweepDealRecord {
+function toDealRecord(deal: {
+  id: string
+  tenantId: string
+  organizationId: string
+  merchantCompanyId?: string | null
+  pipelineStatus: SweepDealRecord['pipelineStatus']
+  businessName: string
+  merchantNameSnapshot?: string | null
+  updatedAt: Date
+}): SweepDealRecord {
   return {
     id: deal.id,
     tenantId: deal.tenantId,
