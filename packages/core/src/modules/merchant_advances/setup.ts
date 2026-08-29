@@ -18,7 +18,9 @@ const floorFeatures = [
 
 export const setup: ModuleSetupConfig = {
   defaultRoleFeatures: {
+    superadmin: ['merchant_advances.*'],
     admin: ['merchant_advances.*'],
+    manager: floorFeatures,
     employee: floorFeatures,
   },
 

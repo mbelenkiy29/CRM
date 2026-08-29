@@ -54,3 +54,11 @@ Manual fallback also on the deal: paste a reply, mark declined, add stips. Nothi
 1. Sign in as `admin@acme.com`. Open **MCA → Reports**. Charts should be non-zero (live deals or the labeled demo fixture).
 2. Export deals CSV and funded CSV. SSN-shaped values such as `123-45-6789` are replaced with `[redacted]`.
 3. A manager/rep token without `merchant_advances.reports.view` gets 403 on `/api/merchant_advances/reports/*` and does not see the Reports nav item.
+
+## How to demo this PR (notifications + roles)
+
+1. Submit, ingest an offer reply, then a decline/stip reply. The bell shows in-app notifications for offer created, decline, stip, and submit failure. Renewal surfacing uses `merchant_advances.renewal.surfaced`.
+2. Admin/superadmin keep `merchant_advances.*` (including reports). Manager and rep (`employee`) get the floor feature set without reports.
+3. Optional outbound shop webhooks: subscribe the existing `@open-mercato/webhooks` package to these event IDs — no extra settings column and no new migration.
+
+Outbound event IDs: `merchant_advances.offer.created`, `merchant_advances.reply.parsed`, `merchant_advances.submission.failed`, `merchant_advances.renewal.surfaced`.

@@ -1,5 +1,7 @@
 import type { NotificationTypeDefinition } from '@open-mercato/shared/modules/notifications/types'
 
+const dealLink = '/backend/merchant_advances/{sourceEntityId}'
+
 export const notificationTypes: NotificationTypeDefinition[] = [
   {
     type: 'merchant_advances.deal.created',
@@ -9,7 +11,7 @@ export const notificationTypes: NotificationTypeDefinition[] = [
     bodyKey: 'merchant_advances.notifications.dealCreated.body',
     icon: 'briefcase',
     severity: 'info',
-    linkHref: '/backend/merchant_advances?id={sourceEntityId}',
+    linkHref: dealLink,
     expiresAfterHours: 168,
   },
   {
@@ -20,7 +22,51 @@ export const notificationTypes: NotificationTypeDefinition[] = [
     bodyKey: 'merchant_advances.notifications.submissionFailed.body',
     icon: 'triangle-alert',
     severity: 'warning',
-    linkHref: '/backend/merchant_advances?id={sourceEntityId}',
+    linkHref: dealLink,
     expiresAfterHours: 168,
+  },
+  {
+    type: 'merchant_advances.offer.created',
+    channels: ['in_app'],
+    module: 'merchant_advances',
+    titleKey: 'merchant_advances.notifications.offerCreated.title',
+    bodyKey: 'merchant_advances.notifications.offerCreated.body',
+    icon: 'badge-dollar-sign',
+    severity: 'success',
+    linkHref: dealLink,
+    expiresAfterHours: 168,
+  },
+  {
+    type: 'merchant_advances.reply.decline',
+    channels: ['in_app'],
+    module: 'merchant_advances',
+    titleKey: 'merchant_advances.notifications.declineLogged.title',
+    bodyKey: 'merchant_advances.notifications.declineLogged.body',
+    icon: 'circle-x',
+    severity: 'warning',
+    linkHref: dealLink,
+    expiresAfterHours: 168,
+  },
+  {
+    type: 'merchant_advances.reply.stip_requested',
+    channels: ['in_app'],
+    module: 'merchant_advances',
+    titleKey: 'merchant_advances.notifications.stipRequested.title',
+    bodyKey: 'merchant_advances.notifications.stipRequested.body',
+    icon: 'file-warning',
+    severity: 'warning',
+    linkHref: dealLink,
+    expiresAfterHours: 168,
+  },
+  {
+    type: 'merchant_advances.renewal.surfaced',
+    channels: ['in_app'],
+    module: 'merchant_advances',
+    titleKey: 'merchant_advances.notifications.renewalApproaching.title',
+    bodyKey: 'merchant_advances.notifications.renewalApproaching.body',
+    icon: 'refresh-cw',
+    severity: 'info',
+    linkHref: dealLink,
+    expiresAfterHours: 336,
   },
 ]
