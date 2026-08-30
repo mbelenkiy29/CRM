@@ -823,7 +823,7 @@ export class McaImportMapping {
 @Entity({ tableName: 'mca_workspace_settings' })
 @Unique({ name: 'mca_workspace_settings_org_tenant_unique', properties: ['organizationId', 'tenantId'] })
 export class McaWorkspaceSettings {
-  [OptionalProps]?: 'watermarkEnabled' | 'createdAt' | 'updatedAt' | 'deletedAt'
+  [OptionalProps]?: 'watermarkEnabled' | 'renewalPaidInThreshold' | 'createdAt' | 'updatedAt' | 'deletedAt'
 
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string

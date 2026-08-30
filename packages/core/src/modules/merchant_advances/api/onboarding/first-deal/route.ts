@@ -35,7 +35,10 @@ export async function POST(req: Request): Promise<Response> {
     })
     if (!guarded.ok) return guarded.response
     const commandBus = context.ctx.container.resolve('commandBus') as CommandBus
-    const { result } = await commandBus.execute(
+    const { result } = await commandBus.execute<
+      Record<string, unknown>,
+      { dealId: string; action: string; submitted: boolean; matchCount: number | null; matches: Array<{ funderId: string; score: string | null }> }
+    >(
       'merchant_advances.onboarding.first_deal',
       {
         input: withScopedPayload({ ...parsed, action, ...guarded.modifiedPayload }, context.ctx, context.translate),

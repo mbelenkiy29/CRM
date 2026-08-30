@@ -418,7 +418,7 @@ export default function MerchantAdvancesDealDetailPage({ params }: { params?: { 
       const next = current.includes(funderId)
         ? current.filter((id) => id !== funderId)
         : [...current, funderId]
-      window.sessionStorage.setItem(SELECTED_FUNDERS_KEY(id), JSON.stringify(next))
+      if (id) window.sessionStorage.setItem(SELECTED_FUNDERS_KEY(id), JSON.stringify(next))
       return next
     })
   }

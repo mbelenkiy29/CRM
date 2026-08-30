@@ -2,7 +2,6 @@ import { z } from 'zod'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { AwilixContainer } from 'awilix'
 import { defineAiTool } from '@open-mercato/ai-assistant/modules/ai_assistant/lib/ai-tool-definition'
-import type { AiToolDefinition } from '@open-mercato/ai-assistant/modules/ai_assistant/lib/types'
 import { findOneWithDecryption, findWithDecryption } from '@open-mercato/shared/lib/encryption/find'
 import { McaDeal, McaStatementAnalysis } from './data/entities'
 import { serializeAnalysis } from './lib/underwriting/serializeAnalysis'
@@ -116,5 +115,5 @@ const rerunAnalysisTool = defineAiTool({
   },
 })
 
-export const aiTools: AiToolDefinition[] = [getAnalysisTool, rerunAnalysisTool]
+export const aiTools = [getAnalysisTool, rerunAnalysisTool]
 export default aiTools

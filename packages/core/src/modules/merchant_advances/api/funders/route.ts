@@ -97,7 +97,7 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
       return {
         name: parsed.name,
         code: toNullableText(parsed.code),
-        submitMethod: submitMethod === 'api_deferred' ? 'api' : submitMethod,
+        submitMethod,
         submitEmail: toNullableText(parsed.submitEmail),
         portalUrl: toNullableText(parsed.portalUrl),
         webhookUrl: toNullableText(parsed.webhookUrl),

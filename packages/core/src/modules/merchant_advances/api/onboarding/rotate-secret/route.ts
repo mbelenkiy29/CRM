@@ -31,7 +31,14 @@ export async function POST(req: Request): Promise<Response> {
     const input = withScopedPayload({}, context.ctx, context.translate)
     const { result } = await commandBus.execute<{ organizationId: string; tenantId: string }, { secret: string }>(
       'merchant_advances.onboarding.rotate_secret',
-      { input, ctx: context.ctx },
+      {
+        input: {
+          ...input,
+          tenantId: context.tenantId,
+          organizationId: context.organizationId,
+        },
+        ctx: context.ctx,
+      },
     )
     await guarded.runAfterSuccess()
     return NextResponse.json({ ok: true, result })

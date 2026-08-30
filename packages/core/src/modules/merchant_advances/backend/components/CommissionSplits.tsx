@@ -64,7 +64,7 @@ export function CommissionSplits({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => onChange([
+            onClick={() => onChange?.([
               ...rows,
               { userId: null, role: null, points: '0', amount: null },
             ])}
@@ -134,7 +134,7 @@ export function CommissionSplits({
                         variant="ghost"
                         size="sm"
                         aria-label={t('merchant_advances.funding.splits.remove')}
-                        onClick={() => onChange(rows.filter((_, rowIndex) => rowIndex !== index))}
+                        onClick={() => onChange?.(rows.filter((_, rowIndex) => rowIndex !== index))}
                       >
                         <Trash2 />
                       </IconButton>
