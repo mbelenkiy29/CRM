@@ -19,7 +19,6 @@ import { SEEDED_FUNDER_CRITERIA } from '../lib/seedFunders'
 import { tryResolve } from '../lib/intake/tryResolve'
 import {
   completeOnboarding,
-  isOnboardingComplete,
   markStepCompleted,
   mergeOnboardingState,
   parseOnboardingState,
@@ -159,7 +158,7 @@ const saveOnboardingCommand: CommandHandler<OnboardingSaveInput, OnboardingSaveR
     }
 
     if (input.restart) next = restartOnboarding(next)
-    else if (input.complete || isOnboardingComplete(next)) next = completeOnboarding(next)
+    else if (input.complete) next = completeOnboarding(next)
 
     await persistOnboarding(settings, next, em)
 
