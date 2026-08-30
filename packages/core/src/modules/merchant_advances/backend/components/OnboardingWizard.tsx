@@ -97,6 +97,10 @@ function prevStepOf(step: McaOnboardingStep): McaOnboardingStep {
   return MCA_ONBOARDING_STEPS[Math.max(index - 1, 0)] ?? 'welcome'
 }
 
+function preventWizardFormSubmit(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault()
+}
+
 export function OnboardingWizard() {
   const t = useT()
   const router = useRouter()
@@ -110,6 +114,8 @@ export function OnboardingWizard() {
   const [csvText, setCsvText] = React.useState('')
   const [csvPreview, setCsvPreview] = React.useState<string | null>(null)
   const [uploadLink, setUploadLink] = React.useState<string | null>(null)
+  const [uploadExpiresAt, setUploadExpiresAt] = React.useState<string | null>(null)
+  const [showSamplePayload, setShowSamplePayload] = React.useState(false)
   const [smsKey, setSmsKey] = React.useState('')
   const [esignKey, setEsignKey] = React.useState('')
   const [newFunder, setNewFunder] = React.useState({
@@ -222,7 +228,8 @@ export function OnboardingWizard() {
         title={t('merchant_advances.onboarding.title')}
         description={t('merchant_advances.onboarding.subtitle')}
       />
-      <PageBody>
+      <PageBody className="flex flex-col gap-4 space-y-0">
+        <div className="min-h-0 max-h-[calc(100svh-12rem)] flex-1 overflow-y-auto">
         <div className="mb-6">
           <StepIndicator steps={indicatorSteps} onStepClick={(id) => { void go(id as McaOnboardingStep) }} />
         </div>
@@ -250,7 +257,7 @@ export function OnboardingWizard() {
         ) : null}
 
         {step === 'shop' ? (
-          <section className="grid max-w-xl gap-4">
+          <form className="grid max-w-xl gap-4" onSubmit={preventWizardFormSubmit}>
             <div className="grid gap-2">
               <Label htmlFor="legalName">{t('merchant_advances.onboarding.shop.legalName')}</Label>
               <Input id="legalName" value={state.shop.legalName ?? ''} onChange={(event) => setState({ ...state, shop: { ...state.shop, legalName: event.target.value } })} />
@@ -288,11 +295,11 @@ export function OnboardingWizard() {
               <Label htmlFor="from">{t('merchant_advances.onboarding.shop.fromAddress')}</Label>
               <Input id="from" type="email" value={state.shop.defaultFromAddress ?? ''} onChange={(event) => setState({ ...state, shop: { ...state.shop, defaultFromAddress: event.target.value } })} />
             </div>
-          </section>
+          </form>
         ) : null}
 
         {step === 'intake' ? (
-          <section className="grid max-w-2xl gap-4">
+          <form className="grid max-w-2xl gap-4" onSubmit={preventWizardFormSubmit}>
             <RadioGroup
               value={state.intake.source ?? ''}
               onValueChange={(value) => setState({ ...state, intake: { ...state.intake, source: value as McaOnboardingIntakeSource } })}
@@ -370,8 +377,21 @@ export function OnboardingWizard() {
                     ))}
                   </div>
                 ) : null}
-                <Label>{t('merchant_advances.onboarding.intake.sample')}</Label>
-                <Textarea readOnly rows={8} value={JSON.stringify(load.samplePayload ?? {}, null, 2)} />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowSamplePayload((open) => !open)}
+                >
+                  {t(showSamplePayload
+                    ? 'merchant_advances.onboarding.intake.hideSample'
+                    : 'merchant_advances.onboarding.intake.showSample')}
+                </Button>
+                {showSamplePayload ? (
+                  <div className="grid gap-2">
+                    <Label>{t('merchant_advances.onboarding.intake.sample')}</Label>
+                    <Textarea readOnly rows={8} value={JSON.stringify(load.samplePayload ?? {}, null, 2)} />
+                  </div>
+                ) : null}
                 <Button
                   type="button"
                   variant="secondary"
@@ -399,7 +419,7 @@ export function OnboardingWizard() {
                 </AlertDescription>
               </Alert>
             ) : null}
-          </section>
+          </form>
         ) : null}
 
         {step === 'people' ? (
@@ -655,15 +675,30 @@ export function OnboardingWizard() {
                   { uploadLink: true },
                 )
                 setUploadLink(result.url)
+                setUploadExpiresAt(result.expiresAt)
                 flash(t('merchant_advances.onboarding.documents.linkIssued'), 'success')
               }}
             >
               {t('merchant_advances.onboarding.documents.testLink')}
             </Button>
             {uploadLink ? (
-              <div className="flex flex-wrap gap-2">
-                <Input readOnly value={uploadLink} />
-                <Button type="button" variant="secondary" onClick={() => void copyText(uploadLink)}>{t('merchant_advances.onboarding.copy')}</Button>
+              <div className="grid gap-2 rounded-md border border-border p-4">
+                <Label>{t('merchant_advances.onboarding.documents.endpointLabel')}</Label>
+                <p className="text-sm text-muted-foreground">{t('merchant_advances.onboarding.documents.endpointHelp')}</p>
+                <p className="text-sm">
+                  <span className="font-medium">{t('merchant_advances.onboarding.documents.method')}</span>
+                  {' '}
+                  <code className="break-all text-xs">{uploadLink}</code>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t('merchant_advances.onboarding.documents.ttl', {
+                    hours: String(state.documents.uploadLinkTtlHours),
+                    when: uploadExpiresAt ? new Date(uploadExpiresAt).toLocaleString() : '',
+                  })}
+                </p>
+                <div>
+                  <Button type="button" variant="secondary" onClick={() => void copyText(uploadLink)}>{t('merchant_advances.onboarding.copy')}</Button>
+                </div>
               </div>
             ) : null}
           </section>
@@ -816,8 +851,9 @@ export function OnboardingWizard() {
             ) : null}
           </section>
         ) : null}
+        </div>
 
-        <div className="mt-8 flex flex-wrap gap-2">
+        <div className="sticky bottom-0 z-sticky flex flex-wrap gap-2 border-t border-border bg-background py-3">
           {step !== 'welcome' ? (
             <Button type="button" variant="secondary" onClick={() => void go(prevStepOf(step))}>
               {t('merchant_advances.onboarding.back')}
