@@ -4,6 +4,7 @@
   "merchant_advances.nav.pipeline": "Pipeline",
   "merchant_advances.nav.offers": "Offers",
   "merchant_advances.nav.renewals": "Renewals",
+  "merchant_advances.nav.renewalQueue": "Renewal queue",
   "merchant_advances.nav.funders": "Funders",
   "merchant_advances.nav.reports": "Reports",
   "merchant_advances.nav.settings": "Settings",
