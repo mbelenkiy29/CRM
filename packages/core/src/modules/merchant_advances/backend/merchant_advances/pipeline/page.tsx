@@ -10,6 +10,7 @@ import { buildOptimisticLockHeader } from '@open-mercato/ui/backend/utils/optimi
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import type { McaPipelineStatus } from '../../../data/constants'
 import { DealKanban, type KanbanDeal } from '../../components/DealKanban'
+import { SetupBanner } from '../../components/SetupBanner'
 
 type DealsResponse = {
   items?: KanbanDeal[]
@@ -67,6 +68,7 @@ export default function MerchantAdvancesPipelinePage() {
     <Page>
       <PageHeader title={t('merchant_advances.pipeline.title')} />
       <PageBody>
+        <SetupBanner />
         <DealKanban deals={rows} loading={loading} onMove={onMove} />
       </PageBody>
     </Page>

@@ -9,6 +9,7 @@ import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { updateCrud } from '@open-mercato/ui/backend/utils/crud'
 import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
+import { OnboardingSetupPanel } from '../../components/OnboardingSetupPanel'
 
 type SettingsValues = {
   defaultFromAddress: string
@@ -122,6 +123,7 @@ export default function MerchantAdvancesSettingsPage() {
             }}
           />
         ) : null}
+        {values ? <OnboardingSetupPanel /> : null}
       </PageBody>
     </Page>
   )

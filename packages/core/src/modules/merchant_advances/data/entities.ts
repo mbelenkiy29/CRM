@@ -849,6 +849,15 @@ export class McaWorkspaceSettings {
   @Property({ name: 'renewal_paid_in_threshold', type: 'int', default: 80 })
   renewalPaidInThreshold: number = 80
 
+  @Property({ type: 'json', nullable: true })
+  onboarding?: Record<string, unknown> | null
+
+  @Property({ type: 'text', nullable: true })
+  plan?: string | null
+
+  @Property({ name: 'trial_ends_at', type: Date, nullable: true })
+  trialEndsAt?: Date | null
+
   @Property({ name: 'created_at', type: Date, onCreate: () => new Date() })
   createdAt: Date = new Date()
 

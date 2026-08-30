@@ -13,6 +13,7 @@ import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { Plus } from 'lucide-react'
 import { pipelineStatusVariant } from './statusVariant'
+import { SetupBanner } from '../components/SetupBanner'
 
 type DealRow = {
   id: string
@@ -83,6 +84,7 @@ export default function MerchantAdvancesDealsPage() {
   return (
     <Page>
       <PageBody>
+        <SetupBanner />
         <DataTable
           title={t('merchant_advances.deals.title')}
           columns={columns}

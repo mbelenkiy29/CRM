@@ -1,6 +1,7 @@
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { McaAssignmentMethod } from '../../data/constants'
 import { McaWorkspaceSettings } from '../../data/entities'
+import { parseOnboardingState } from '../onboarding/state'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -82,7 +83,9 @@ export async function resolveIntakeAssignment(input: {
       organizationId: input.scope.organizationId,
     })
   }
-  const roster = await listAssignableUserIds(input.em, input.scope)
+  const onboarding = parseOnboardingState(settings.onboarding)
+  const selected = onboarding.intake.assigneeUserIds.filter((id) => UUID_RE.test(id))
+  const roster = selected.length > 0 ? selected : await listAssignableUserIds(input.em, input.scope)
   const picked = pickRoundRobinOwner(roster, settings.roundRobinCursorUserId ?? null)
   if (picked.nextCursorUserId) settings.roundRobinCursorUserId = picked.nextCursorUserId
   return {
