@@ -223,13 +223,13 @@ export function OnboardingWizard() {
   }
 
   return (
-    <Page>
+    <Page className="flex max-h-[calc(100svh-6rem)] flex-col gap-6 space-y-0 overflow-hidden">
       <PageHeader
         title={t('merchant_advances.onboarding.title')}
         description={t('merchant_advances.onboarding.subtitle')}
       />
-      <PageBody className="flex flex-col gap-4 space-y-0">
-        <div className="min-h-0 max-h-[calc(100svh-12rem)] flex-1 overflow-y-auto">
+      <PageBody className="flex min-h-0 flex-1 flex-col gap-4 space-y-0 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mb-6">
           <StepIndicator steps={indicatorSteps} onStepClick={(id) => { void go(id as McaOnboardingStep) }} />
         </div>
