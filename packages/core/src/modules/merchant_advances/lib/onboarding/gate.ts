@@ -13,7 +13,8 @@ const LANDING_PATHS = new Set([
 ])
 
 export function canAdministerOnboarding(granted: readonly string[] | null | undefined): boolean {
-  return hasFeature(granted, MCA_ADMIN_FEATURE) || hasFeature(granted, MCA_REPORTS_FEATURE)
+  const features = granted ?? undefined
+  return hasFeature(features, MCA_ADMIN_FEATURE) || hasFeature(features, MCA_REPORTS_FEATURE)
 }
 
 export function isOnboardingPath(pathname: string): boolean {

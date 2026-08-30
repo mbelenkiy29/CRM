@@ -25,7 +25,7 @@ function requireScope(ctx: ToolContext): { tenantId: string; organizationId: str
   return { tenantId: ctx.tenantId, organizationId: ctx.organizationId }
 }
 
-const getAnalysisTool: AiToolDefinition = defineAiTool({
+const getAnalysisTool = defineAiTool({
   name: 'merchant_advances.get_statement_analysis',
   description: 'Read first-pass bank-statement underwriting metrics for an MCA deal. Does not replace a human underwriter and never submits funders.',
   inputSchema: z.object({
@@ -59,7 +59,7 @@ const getAnalysisTool: AiToolDefinition = defineAiTool({
   },
 })
 
-const rerunAnalysisTool: AiToolDefinition = defineAiTool({
+const rerunAnalysisTool = defineAiTool({
   name: 'merchant_advances.rerun_statement_analysis',
   description: 'Queue a first-pass re-analysis of bank statements on an MCA deal. A human must still review the box check. Never auto-submits funders.',
   inputSchema: statementAnalyzeSchema.pick({ dealId: true, attachmentId: true, documentId: true }),

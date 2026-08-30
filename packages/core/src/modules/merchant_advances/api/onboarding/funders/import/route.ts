@@ -54,10 +54,12 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 export const openApi: OpenApiRouteDoc = {
-  POST: {
-    path: '/merchant_advances/onboarding/funders/import',
-    summary: 'Preview or commit a funder roster CSV. SSN-shaped cells are rejected.',
-    tags: ['Merchant Advances'],
-    responses: { 200: { description: 'Preview or created funders.' } },
+  tag: 'Merchant Advances',
+  summary: 'Preview or commit a funder roster CSV. SSN-shaped cells are rejected.',
+  methods: {
+    POST: {
+      summary: 'Preview or commit a funder roster CSV. SSN-shaped cells are rejected.',
+      responses: [{ status: 200, description: 'Preview or created funders.' }],
+    },
   },
 }

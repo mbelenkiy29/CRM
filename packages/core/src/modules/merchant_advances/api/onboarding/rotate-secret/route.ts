@@ -46,10 +46,12 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 export const openApi: OpenApiRouteDoc = {
-  POST: {
-    path: '/merchant_advances/onboarding/rotate-secret',
-    summary: 'Generate or rotate the x-mca-intake-secret',
-    tags: ['Merchant Advances'],
-    responses: { 200: { description: 'Secret shown once.' } },
+  tag: 'Merchant Advances',
+  summary: 'Generate or rotate the x-mca-intake-secret',
+  methods: {
+    POST: {
+      summary: 'Generate or rotate the x-mca-intake-secret',
+      responses: [{ status: 200, description: 'Secret shown once.' }],
+    },
   },
 }

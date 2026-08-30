@@ -42,10 +42,12 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 export const openApi: OpenApiRouteDoc = {
-  POST: {
-    path: '/merchant_advances/onboarding/funders/starter',
-    summary: 'Keep Harbor Advance and Northstar Capital with seeded criteria',
-    tags: ['Merchant Advances'],
-    responses: { 200: { description: 'Starter funders kept.' } },
+  tag: 'Merchant Advances',
+  summary: 'Keep Harbor Advance and Northstar Capital with seeded criteria',
+  methods: {
+    POST: {
+      summary: 'Keep Harbor Advance and Northstar Capital with seeded criteria',
+      responses: [{ status: 200, description: 'Starter funders kept.' }],
+    },
   },
 }

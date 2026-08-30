@@ -42,10 +42,12 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 export const openApi: OpenApiRouteDoc = {
-  POST: {
-    path: '/merchant_advances/onboarding/upload-link',
-    summary: 'Issue a test merchant upload link for Sunset Diner',
-    tags: ['Merchant Advances'],
-    responses: { 200: { description: 'Signed upload token issued.' } },
+  tag: 'Merchant Advances',
+  summary: 'Issue a test merchant upload link for Sunset Diner',
+  methods: {
+    POST: {
+      summary: 'Issue a test merchant upload link for Sunset Diner',
+      responses: [{ status: 200, description: 'Signed upload token issued.' }],
+    },
   },
 }

@@ -53,10 +53,12 @@ export async function GET(req: Request): Promise<Response> {
 }
 
 export const openApi: OpenApiRouteDoc = {
-  GET: {
-    path: '/merchant_advances/onboarding/status',
-    summary: 'MCA onboarding gate status for the current workspace',
-    tags: ['Merchant Advances'],
-    responses: { 200: { description: 'Onboarding gate flags.' } },
+  tag: 'Merchant Advances',
+  summary: 'MCA onboarding gate status for the current workspace',
+  methods: {
+    GET: {
+      summary: 'MCA onboarding gate status for the current workspace',
+      responses: [{ status: 200, description: 'Onboarding gate flags.' }],
+    },
   },
 }

@@ -52,13 +52,15 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 export const openApi: OpenApiRouteDoc = {
-  POST: {
-    path: '/merchant_advances/onboarding/test-intake',
-    summary: 'Create the Sunset Diner intake fixture without fetching statement URLs',
-    tags: ['Merchant Advances'],
-    responses: {
-      200: { description: 'Fixture deal created.' },
-      404: { description: 'Webhooks module is disabled.' },
+  tag: 'Merchant Advances',
+  summary: 'Create the Sunset Diner intake fixture without fetching statement URLs',
+  methods: {
+    POST: {
+      summary: 'Create the Sunset Diner intake fixture without fetching statement URLs',
+      responses: [
+        { status: 200, description: 'Fixture deal created.' },
+        { status: 404, description: 'Webhooks module is disabled.' },
+      ],
     },
   },
 }

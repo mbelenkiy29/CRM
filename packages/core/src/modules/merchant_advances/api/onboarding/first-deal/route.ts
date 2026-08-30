@@ -63,10 +63,12 @@ export async function POST(req: Request): Promise<Response> {
 }
 
 export const openApi: OpenApiRouteDoc = {
-  POST: {
-    path: '/merchant_advances/onboarding/first-deal',
-    summary: 'Create or reuse Sunset Diner and run the first-deal checklist. Never auto-submits funders.',
-    tags: ['Merchant Advances'],
-    responses: { 200: { description: 'First-deal checklist updated.' } },
+  tag: 'Merchant Advances',
+  summary: 'Create or reuse Sunset Diner and run the first-deal checklist. Never auto-submits funders.',
+  methods: {
+    POST: {
+      summary: 'Create or reuse Sunset Diner and run the first-deal checklist. Never auto-submits funders.',
+      responses: [{ status: 200, description: 'First-deal checklist updated.' }],
+    },
   },
 }

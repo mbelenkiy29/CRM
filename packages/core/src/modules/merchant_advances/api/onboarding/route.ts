@@ -152,21 +152,17 @@ export async function PUT(req: Request): Promise<Response> {
 }
 
 export const openApi: OpenApiRouteDoc = {
-  GET: {
-    path: '/merchant_advances/onboarding',
-    summary: 'Load MCA shop onboarding wizard state',
-    tags: ['Merchant Advances'],
-    responses: {
-      200: { description: 'Onboarding state.' },
+  tag: 'Merchant Advances',
+  summary: 'MCA shop onboarding wizard state',
+  methods: {
+    GET: {
+      summary: 'Load MCA shop onboarding wizard state',
+      responses: [{ status: 200, description: 'Onboarding state.' }],
     },
-  },
-  PUT: {
-    path: '/merchant_advances/onboarding',
-    summary: 'Save MCA shop onboarding wizard state',
-    tags: ['Merchant Advances'],
-    request: { body: { content: { 'application/json': { schema: onboardingSaveSchema.omit({ organizationId: true, tenantId: true }) } } } },
-    responses: {
-      200: { description: 'Onboarding saved.' },
+    PUT: {
+      summary: 'Save MCA shop onboarding wizard state',
+      requestBody: { schema: onboardingSaveSchema.omit({ organizationId: true, tenantId: true }) },
+      responses: [{ status: 200, description: 'Onboarding saved.' }],
     },
   },
 }
