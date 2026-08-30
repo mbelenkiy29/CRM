@@ -1,9 +1,12 @@
 "use client"
 
 import * as React from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import type { LegacyColumnDef as ColumnDef } from '@tanstack/react-table/legacy'
 import { Page, PageBody, PageHeader } from '@open-mercato/ui/backend/Page'
+import { DataTable } from '@open-mercato/ui/backend/DataTable'
 import { ListEmptyState } from '@open-mercato/ui/backend/filters/ListEmptyState'
+import { ErrorMessage } from '@open-mercato/ui/backend/detail'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { surfaceRecordConflict } from '@open-mercato/ui/backend/conflicts'
 import { useGuardedMutation } from '@open-mercato/ui/backend/injection/useGuardedMutation'
@@ -13,43 +16,80 @@ import { buildOptimisticLockHeader } from '@open-mercato/ui/backend/utils/optimi
 import { Button } from '@open-mercato/ui/primitives/button'
 import { StatusBadge } from '@open-mercato/ui/primitives/status-badge'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
+import { pipelineStatusVariant, renewalStatusVariant } from '../statusVariant'
 
 type RenewalRow = {
   id: string
-  dealId: string | null
-  status: string | null
+  dealId: string
+  fundingId: string
+  merchantName: string | null
   paidInPct: string | null
+  remainingDays: number | null
+  status: string
+  fundedAt: string | null
+  termMonths: number | null
   updatedAt: string | null
 }
 
-type DealRow = {
-  id: string
-  businessName: string | null
+type PastApprovalRow = {
+  dealId: string
+  merchantName: string | null
+  paidInPct: string | null
+  fundedAt: string | null
+  pipelineStatus: string
 }
 
-type ListResponse<T> = { items?: T[] }
+type QueueResponse = {
+  items?: RenewalRow[]
+  pastApproval?: PastApprovalRow[]
+  threshold?: number
+}
+
+type CrudRenewal = {
+  id: string
+  updatedAt: string | null
+}
 
 const WRITEBACK = ['contacted', 'renewed', 'lost'] as const
 
+function formatDate(value: string | null): string {
+  if (!value) return ''
+  return value.slice(0, 10)
+}
+
 export default function MerchantAdvancesRenewalsPage() {
   const t = useT()
+  const router = useRouter()
+  const emptyValue = t('merchant_advances.common.empty')
   const [rows, setRows] = React.useState<RenewalRow[]>([])
-  const [deals, setDeals] = React.useState<DealRow[]>([])
+  const [pastApproval, setPastApproval] = React.useState<PastApprovalRow[]>([])
+  const [versions, setVersions] = React.useState<Record<string, string | null>>({})
+  const [threshold, setThreshold] = React.useState<number | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState(false)
 
   const load = React.useCallback(async () => {
     setLoading(true)
+    setError(false)
     try {
-      const [renewalsRes, dealsRes] = await Promise.all([
-        readApiResultOrThrow<ListResponse<RenewalRow>>(
+      const [queue, crud] = await Promise.all([
+        readApiResultOrThrow<QueueResponse>(
+          '/api/merchant_advances/renewals/queue?page=1&pageSize=50',
+        ),
+        readApiResultOrThrow<{ items?: CrudRenewal[] }>(
           '/api/merchant_advances/renewals?page=1&pageSize=100&sortField=updatedAt&sortDir=desc',
         ),
-        readApiResultOrThrow<ListResponse<DealRow>>(
-          '/api/merchant_advances/deals?page=1&pageSize=100&sortField=updatedAt&sortDir=desc',
-        ),
       ])
-      setRows(renewalsRes.items ?? [])
-      setDeals(dealsRes.items ?? [])
+      setRows(queue.items ?? [])
+      setPastApproval(queue.pastApproval ?? [])
+      setThreshold(typeof queue.threshold === 'number' ? queue.threshold : null)
+      const nextVersions: Record<string, string | null> = {}
+      for (const row of crud.items ?? []) {
+        nextVersions[row.id] = row.updatedAt ?? null
+      }
+      setVersions(nextVersions)
+    } catch {
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -64,11 +104,11 @@ export default function MerchantAdvancesRenewalsPage() {
     blockedMessage: t('merchant_advances.errors.saveBlocked'),
   })
 
-  const writeStatus = async (renewal: RenewalRow, status: string) => {
+  const writeStatus = React.useCallback(async (renewal: RenewalRow, status: string) => {
     try {
       await runMutation({
         operation: () => withScopedApiRequestHeaders(
-          buildOptimisticLockHeader(renewal.updatedAt),
+          buildOptimisticLockHeader(versions[renewal.id] ?? renewal.updatedAt),
           () => updateCrud('merchant_advances/renewals', { id: renewal.id, status }),
         ),
         context: {
@@ -83,60 +123,148 @@ export default function MerchantAdvancesRenewalsPage() {
     } catch (err) {
       surfaceRecordConflict(err, t, { onRefresh: load })
     }
-  }
+  }, [load, runMutation, retryLastMutation, t, versions])
 
-  const dealName = (dealId: string | null) => {
-    if (!dealId) return '—'
-    return deals.find((deal) => deal.id === dealId)?.businessName ?? dealId
-  }
+  const renewalColumns = React.useMemo<ColumnDef<RenewalRow>[]>(() => [
+    {
+      accessorKey: 'merchantName',
+      header: t('merchant_advances.renewals.columns.merchant'),
+      cell: ({ row }) => row.original.merchantName ?? emptyValue,
+    },
+    {
+      accessorKey: 'paidInPct',
+      header: t('merchant_advances.renewals.columns.paidIn'),
+      cell: ({ row }) => (
+        row.original.paidInPct
+          ? t('merchant_advances.renewals.paidInValue', { value: row.original.paidInPct })
+          : emptyValue
+      ),
+    },
+    {
+      accessorKey: 'remainingDays',
+      header: t('merchant_advances.renewals.columns.remainingDays'),
+      cell: ({ row }) => (
+        row.original.remainingDays == null
+          ? emptyValue
+          : t('merchant_advances.renewals.remainingDaysValue', { count: Math.max(0, row.original.remainingDays) })
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: t('merchant_advances.renewals.columns.status'),
+      cell: ({ row }) => (
+        <StatusBadge variant={renewalStatusVariant(row.original.status)}>
+          {t(`merchant_advances.renewalStatus.${row.original.status}`)}
+        </StatusBadge>
+      ),
+    },
+    {
+      accessorKey: 'fundedAt',
+      header: t('merchant_advances.renewals.columns.fundedAt'),
+      cell: ({ row }) => formatDate(row.original.fundedAt) || emptyValue,
+    },
+    {
+      accessorKey: 'termMonths',
+      header: t('merchant_advances.renewals.columns.term'),
+      cell: ({ row }) => row.original.termMonths ?? emptyValue,
+    },
+    {
+      id: 'writeback',
+      header: t('merchant_advances.renewals.columns.actions'),
+      cell: ({ row }) => (
+        <div className="flex flex-wrap gap-2">
+          {WRITEBACK.map((status) => (
+            <Button
+              key={status}
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={(event) => {
+                event.stopPropagation()
+                void writeStatus(row.original, status)
+              }}
+            >
+              {t(`merchant_advances.renewal.${status}`)}
+            </Button>
+          ))}
+        </div>
+      ),
+    },
+  ], [emptyValue, t, writeStatus])
+
+  const pastApprovalColumns = React.useMemo<ColumnDef<PastApprovalRow>[]>(() => [
+    {
+      accessorKey: 'merchantName',
+      header: t('merchant_advances.renewals.columns.merchant'),
+      cell: ({ row }) => row.original.merchantName ?? emptyValue,
+    },
+    {
+      accessorKey: 'paidInPct',
+      header: t('merchant_advances.renewals.columns.paidIn'),
+      cell: ({ row }) => (
+        row.original.paidInPct
+          ? t('merchant_advances.renewals.paidInValue', { value: row.original.paidInPct })
+          : emptyValue
+      ),
+    },
+    {
+      accessorKey: 'fundedAt',
+      header: t('merchant_advances.renewals.columns.fundedAt'),
+      cell: ({ row }) => formatDate(row.original.fundedAt) || emptyValue,
+    },
+    {
+      accessorKey: 'pipelineStatus',
+      header: t('merchant_advances.deals.columns.status'),
+      cell: ({ row }) => (
+        <StatusBadge variant={pipelineStatusVariant(row.original.pipelineStatus)}>
+          {t(`merchant_advances.status.${row.original.pipelineStatus}`)}
+        </StatusBadge>
+      ),
+    },
+  ], [emptyValue, t])
 
   return (
     <Page>
-      <PageHeader title={t('merchant_advances.renewals.title')} />
+      <PageHeader
+        title={t('merchant_advances.renewals.title')}
+        description={
+          threshold == null
+            ? t('merchant_advances.renewals.description')
+            : t('merchant_advances.renewals.descriptionWithThreshold', { threshold })
+        }
+      />
       <PageBody>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">{t('merchant_advances.common.loading')}</p>
-        ) : rows.length === 0 ? (
-          <ListEmptyState
-            title={t('merchant_advances.renewals.empty.title')}
-            description={t('merchant_advances.renewals.empty.description')}
-          />
+        {error ? (
+          <ErrorMessage label={t('merchant_advances.errors.loadFailed')} />
         ) : (
-          <ul className="space-y-3">
-            {rows.map((renewal) => (
-              <li key={renewal.id} className="rounded-md border border-border p-3">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                  <Link
-                    href={renewal.dealId ? `/backend/merchant_advances/${renewal.dealId}` : '/backend/merchant_advances'}
-                    className="text-sm font-medium hover:underline"
-                  >
-                    {dealName(renewal.dealId)}
-                  </Link>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">
-                      {t('merchant_advances.pipeline.paidIn')}: {renewal.paidInPct ?? '0'}%
-                    </span>
-                    <StatusBadge variant="info">
-                      {renewal.status ? t(`merchant_advances.renewal.${renewal.status}`) : '—'}
-                    </StatusBadge>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {WRITEBACK.map((status) => (
-                    <Button
-                      key={status}
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void writeStatus(renewal, status)}
-                    >
-                      {t(`merchant_advances.renewal.${status}`)}
-                    </Button>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col gap-8">
+            <DataTable
+              title={t('merchant_advances.renewals.approaching.title')}
+              columns={renewalColumns}
+              data={rows}
+              isLoading={loading}
+              onRowClick={(row) => router.push(`/backend/merchant_advances/${row.dealId}`)}
+              emptyState={(
+                <ListEmptyState
+                  title={t('merchant_advances.renewals.empty.title')}
+                  description={t('merchant_advances.renewals.empty.description')}
+                />
+              )}
+            />
+            <DataTable
+              title={t('merchant_advances.renewals.pastApproval.title')}
+              columns={pastApprovalColumns}
+              data={pastApproval}
+              isLoading={loading}
+              onRowClick={(row) => router.push(`/backend/merchant_advances/${row.dealId}`)}
+              emptyState={(
+                <ListEmptyState
+                  title={t('merchant_advances.renewals.pastApproval.empty.title')}
+                  description={t('merchant_advances.renewals.pastApproval.empty.description')}
+                />
+              )}
+            />
+          </div>
         )}
       </PageBody>
     </Page>

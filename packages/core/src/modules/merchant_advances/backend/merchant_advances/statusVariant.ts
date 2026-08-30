@@ -7,3 +7,11 @@ export function pipelineStatusVariant(status: string | null): StatusBadgeVariant
   if (status === 'submitted') return 'warning'
   return 'neutral'
 }
+
+export function renewalStatusVariant(status: string | null): StatusBadgeVariant {
+  if (status === 'renewed') return 'success'
+  if (status === 'lost') return 'error'
+  if (status === 'due') return 'warning'
+  if (status === 'contacted') return 'info'
+  return 'neutral'
+}

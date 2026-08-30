@@ -325,6 +325,7 @@
   "merchant_advances.renewals.columns.status": "Status",
   "merchant_advances.renewals.columns.fundedAt": "Funded",
   "merchant_advances.renewals.columns.term": "Term (months)",
+  "merchant_advances.renewals.columns.actions": "Follow-up",
   "merchant_advances.renewals.paidInValue": "{{value}}%",
   "merchant_advances.renewals.remainingDaysValue": "{{count}} days",
   "merchant_advances.renewalStatus.watching": "Watching",

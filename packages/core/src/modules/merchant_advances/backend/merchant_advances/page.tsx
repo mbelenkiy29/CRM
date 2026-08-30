@@ -98,12 +98,19 @@ export default function MerchantAdvancesDealsPage() {
             />
           )}
           toolbar={(
-            <Button asChild>
-              <Link href="/backend/merchant_advances/create">
-                <Plus className="size-4" />
-                {t('merchant_advances.deals.create')}
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline">
+                <Link href="/backend/merchant_advances/imports">
+                  {t('merchant_advances.deals.import')}
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/backend/merchant_advances/create">
+                  <Plus className="size-4" />
+                  {t('merchant_advances.deals.create')}
+                </Link>
+              </Button>
+            </div>
           )}
         />
       </PageBody>
