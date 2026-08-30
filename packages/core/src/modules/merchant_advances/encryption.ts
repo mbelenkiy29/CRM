@@ -17,3 +17,5 @@ export const defaultEncryptionMaps: ModuleEncryptionMap[] = [
     fields: [{ field: 'notes' }],
   },
 ]
+
+export default defaultEncryptionMaps
