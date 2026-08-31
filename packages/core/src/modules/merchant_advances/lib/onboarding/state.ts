@@ -210,12 +210,18 @@ function parseFirstDeal(value: unknown, fallback: McaOnboardingFirstDeal): McaOn
 export function parseGettingStarted(value: unknown, fallback = EMPTY_GETTING_STARTED): McaGettingStartedState {
   if (!isRecord(value)) return { ...fallback }
   const rawStep = value.currentStep
-  const currentStep = typeof rawStep === 'number' && Number.isInteger(rawStep)
-    ? Math.max(0, Math.min(20, rawStep))
+  const currentStep = 'currentStep' in value
+    ? (typeof rawStep === 'number' && Number.isInteger(rawStep)
+      ? Math.max(0, Math.min(20, rawStep))
+      : fallback.currentStep)
     : fallback.currentStep
   return {
-    dismissedAt: asText(value.dismissedAt, 40),
-    completedAt: asText(value.completedAt, 40),
+    dismissedAt: 'dismissedAt' in value
+      ? (value.dismissedAt === null ? null : asText(value.dismissedAt, 40))
+      : fallback.dismissedAt,
+    completedAt: 'completedAt' in value
+      ? (value.completedAt === null ? null : asText(value.completedAt, 40))
+      : fallback.completedAt,
     currentStep,
   }
 }

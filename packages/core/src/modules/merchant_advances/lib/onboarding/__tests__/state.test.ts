@@ -119,6 +119,26 @@ describe('merchant_advances getting started tour state', () => {
     expect(completed.gettingStarted).toEqual(EMPTY_GETTING_STARTED)
   })
 
+  it('preserves gettingStarted timestamps when merging a partial patch', () => {
+    const base = mergeOnboardingState(createEmptyOnboardingState(), {
+      gettingStarted: {
+        dismissedAt: '2026-08-31T13:00:00.000Z',
+        completedAt: null,
+        currentStep: 1,
+      },
+    })
+    const merged = mergeOnboardingState(base, {
+      gettingStarted: { currentStep: 2 },
+    })
+    expect(merged.gettingStarted.dismissedAt).toBe('2026-08-31T13:00:00.000Z')
+    expect(merged.gettingStarted.currentStep).toBe(2)
+    expect(shouldLaunchGettingStarted({
+      onboardingCompletedAt: '2026-08-31T12:00:00.000Z',
+      tour: merged.gettingStarted,
+      queryTour: null,
+    })).toBe(false)
+  })
+
   it('round-trips gettingStarted through parseOnboardingState', () => {
     const saved = mergeOnboardingState(createEmptyOnboardingState(), {
       gettingStarted: {
