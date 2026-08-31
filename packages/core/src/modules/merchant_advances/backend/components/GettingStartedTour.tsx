@@ -3,7 +3,8 @@
 import * as React from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useGuardedMutation } from '@open-mercato/ui/backend/injection/useGuardedMutation'
-import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
+import { readApiResultOrThrow, withScopedApiRequestHeaders } from '@open-mercato/ui/backend/utils/apiCall'
+import { buildOptimisticLockHeader } from '@open-mercato/ui/backend/utils/optimisticLock'
 import { Button } from '@open-mercato/ui/primitives/button'
 import {
   Dialog,
@@ -22,8 +23,22 @@ import {
 import type { McaGettingStartedState } from '../../lib/onboarding/types'
 
 type StatusResult = {
+  canAdminister?: boolean
   completedAt?: string | null
   gettingStarted?: McaGettingStartedState & { shouldLaunch?: boolean }
+  updatedAt?: string | null
+}
+
+type PersistResult = {
+  result?: { updatedAt?: string | null }
+  updatedAt?: string | null
+}
+
+async function loadStatus(): Promise<StatusResult> {
+  const body = await readApiResultOrThrow<{ result?: StatusResult } & StatusResult>(
+    '/api/merchant_advances/onboarding/status',
+  )
+  return body.result ?? body
 }
 
 function useAnchorRect(anchorId: string | null, active: boolean): DOMRect | null {
@@ -59,8 +74,12 @@ export function GettingStartedTour() {
   const searchParams = useSearchParams()
   const queryTour = searchParams.get('tour')
   const [open, setOpen] = React.useState(false)
+  const [canAdminister, setCanAdminister] = React.useState(false)
+  const [busy, setBusy] = React.useState(false)
   const [stepIndex, setStepIndex] = React.useState(0)
   const [onboardingCompletedAt, setOnboardingCompletedAt] = React.useState<string | null>(null)
+  const [updatedAt, setUpdatedAt] = React.useState<string | null>(null)
+  const busyRef = React.useRef(false)
   const [tour, setTour] = React.useState<McaGettingStartedState>({
     dismissedAt: null,
     completedAt: null,
@@ -75,29 +94,33 @@ export function GettingStartedTour() {
     let cancelled = false
     ;(async () => {
       try {
-        const body = await readApiResultOrThrow<{ result?: StatusResult } & StatusResult>(
-          '/api/merchant_advances/onboarding/status',
-        )
-        const result = body.result ?? body
+        const result = await loadStatus()
         if (cancelled) return
+        const isAdmin = result.canAdminister === true
         const nextTour = {
           dismissedAt: result.gettingStarted?.dismissedAt ?? null,
           completedAt: result.gettingStarted?.completedAt ?? null,
           currentStep: result.gettingStarted?.currentStep ?? 0,
         }
+        setCanAdminister(isAdmin)
         setOnboardingCompletedAt(result.completedAt ?? null)
+        setUpdatedAt(typeof result.updatedAt === 'string' ? result.updatedAt : null)
         setTour(nextTour)
-        const launch = shouldLaunchGettingStarted({
-          onboardingCompletedAt: result.completedAt ?? null,
-          tour: nextTour,
-          queryTour,
-        })
+        const launch = isAdmin
+          && shouldLaunchGettingStarted({
+            onboardingCompletedAt: result.completedAt ?? null,
+            tour: nextTour,
+            queryTour,
+          })
         setOpen(launch)
         if (launch) {
           setStepIndex(queryTour === 'getting-started' ? 0 : nextTour.currentStep)
         }
       } catch {
-        if (!cancelled) setOpen(false)
+        if (!cancelled) {
+          setCanAdminister(false)
+          setOpen(false)
+        }
       }
     })()
     return () => {
@@ -106,21 +129,43 @@ export function GettingStartedTour() {
   }, [queryTour])
 
   const persist = React.useCallback(async (next: McaGettingStartedState) => {
-    setTour(next)
-    await runMutation({
-      operation: () => readApiResultOrThrow('/api/merchant_advances/onboarding', {
-        method: 'PUT',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ gettingStarted: next }),
-      }),
-      context: {
-        formId: 'merchant-advances-tour',
-        resourceKind: 'merchant_advances.onboarding',
-        retryLastMutation,
-      },
-      mutationPayload: next,
-    })
-  }, [retryLastMutation, runMutation])
+    if (busyRef.current) return false
+    busyRef.current = true
+    setBusy(true)
+    try {
+      const body = await runMutation({
+        operation: () => withScopedApiRequestHeaders(
+          buildOptimisticLockHeader(updatedAt),
+          () => readApiResultOrThrow<PersistResult>('/api/merchant_advances/onboarding', {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ gettingStarted: next }),
+          }),
+        ),
+        context: {
+          formId: 'merchant-advances-tour',
+          resourceKind: 'merchant_advances.onboarding',
+          retryLastMutation,
+        },
+        mutationPayload: next,
+      })
+      const persistedUpdatedAt = body.result?.updatedAt ?? body.updatedAt
+      if (typeof persistedUpdatedAt === 'string') {
+        setUpdatedAt(persistedUpdatedAt)
+      } else {
+        const status = await loadStatus()
+        setUpdatedAt(typeof status.updatedAt === 'string' ? status.updatedAt : null)
+      }
+      setTour(next)
+      return true
+    } catch (err) {
+      setOpen(true)
+      throw err
+    } finally {
+      busyRef.current = false
+      setBusy(false)
+    }
+  }, [retryLastMutation, runMutation, updatedAt])
 
   const clearQuery = React.useCallback(() => {
     if (queryTour !== 'getting-started') return
@@ -133,11 +178,12 @@ export function GettingStartedTour() {
   const dismiss = React.useCallback(async (completed: boolean) => {
     const now = new Date().toISOString()
     try {
-      await persist({
+      const persisted = await persist({
         dismissedAt: completed ? tour.dismissedAt : now,
         completedAt: completed ? now : tour.completedAt,
         currentStep: completed ? GETTING_STARTED_STEPS.length - 1 : stepIndex,
       })
+      if (!persisted) return
       clearQuery()
       setOpen(false)
     } catch {
@@ -148,18 +194,23 @@ export function GettingStartedTour() {
   const go = React.useCallback(async (nextIndex: number) => {
     const clamped = Math.max(0, Math.min(GETTING_STARTED_STEPS.length - 1, nextIndex))
     const step = gettingStartedStepByIndex(clamped)
-    setStepIndex(clamped)
-    await persist({ ...tour, currentStep: clamped, dismissedAt: null, completedAt: null })
-    if (step.route !== pathname) {
-      router.push(step.route)
-    } else {
-      clearQuery()
+    try {
+      const persisted = await persist({ ...tour, currentStep: clamped, dismissedAt: null, completedAt: null })
+      if (!persisted) return
+      setStepIndex(clamped)
+      if (step.route !== pathname) {
+        router.push(step.route)
+      } else {
+        clearQuery()
+      }
+    } catch {
+      setOpen(true)
     }
   }, [clearQuery, pathname, persist, router, tour])
 
   React.useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (!open) return
+      if (!open || busy) return
       if (event.key === 'Escape' && gettingStartedStepByIndex(stepIndex).kind === 'anchor') {
         event.preventDefault()
         void dismiss(false)
@@ -174,7 +225,7 @@ export function GettingStartedTour() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [dismiss, go, open, stepIndex])
+  }, [busy, dismiss, go, open, stepIndex])
 
   const step = gettingStartedStepByIndex(stepIndex)
   const anchorId = step.id === 'match-submit' && typeof document !== 'undefined'
@@ -182,11 +233,11 @@ export function GettingStartedTour() {
     : step.anchorId
   const rect = useAnchorRect(anchorId, open && step.kind === 'anchor')
 
-  if (!open || !onboardingCompletedAt) return null
+  if (!canAdminister || !open || !onboardingCompletedAt) return null
 
   if (step.kind === 'dialog') {
     return (
-      <Dialog open onOpenChange={(next) => { if (!next) void dismiss(false) }}>
+      <Dialog open onOpenChange={(next) => { if (!next && !busy) void dismiss(false) }}>
         <DialogContent size="lg">
           <DialogHeader>
             <DialogTitle>{t(step.titleKey)}</DialogTitle>
@@ -209,13 +260,13 @@ export function GettingStartedTour() {
             />
           </video>
           <DialogFooter layout="equal">
-            <Button type="button" variant="secondary" onClick={() => void dismiss(false)}>
+            <Button type="button" variant="secondary" onClick={() => void dismiss(false)} disabled={busy}>
               {t('merchant_advances.tour.welcome.explore')}
             </Button>
-            <Button type="button" variant="outline" onClick={() => void dismiss(false)}>
+            <Button type="button" variant="outline" onClick={() => void dismiss(false)} disabled={busy}>
               {t('merchant_advances.tour.welcome.later')}
             </Button>
-            <Button type="button" onClick={() => void go(1)}>
+            <Button type="button" onClick={() => void go(1)} disabled={busy}>
               {t('merchant_advances.tour.welcome.start')}
             </Button>
           </DialogFooter>
@@ -251,20 +302,20 @@ export function GettingStartedTour() {
         <h2 id="mca-tour-title" className="mt-1 text-sm font-medium">{t(step.titleKey)}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t(step.bodyKey)}</p>
         <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={() => void dismiss(false)}>
+          <Button type="button" variant="ghost" onClick={() => void dismiss(false)} disabled={busy}>
             {t('merchant_advances.tour.skip')}
           </Button>
           {stepIndex > 1 ? (
-            <Button type="button" variant="secondary" onClick={() => void go(stepIndex - 1)}>
+            <Button type="button" variant="secondary" onClick={() => void go(stepIndex - 1)} disabled={busy}>
               {t('merchant_advances.tour.back')}
             </Button>
           ) : null}
           {stepIndex >= GETTING_STARTED_STEPS.length - 1 ? (
-            <Button type="button" onClick={() => void dismiss(true)}>
+            <Button type="button" onClick={() => void dismiss(true)} disabled={busy}>
               {t('merchant_advances.tour.done')}
             </Button>
           ) : (
-            <Button type="button" onClick={() => void go(stepIndex + 1)}>
+            <Button type="button" onClick={() => void go(stepIndex + 1)} disabled={busy}>
               {t('merchant_advances.tour.next')}
             </Button>
           )}

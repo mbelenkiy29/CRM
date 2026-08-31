@@ -40,6 +40,7 @@ export async function GET(req: Request): Promise<Response> {
         completedAt: state.completedAt,
         step: state.step,
         canAdminister,
+        updatedAt: settings.updatedAt.toISOString(),
         showSetupBanner: shouldShowSetupBanner({ grantedFeatures: granted, completedAt: state.completedAt }),
         gettingStarted: {
           dismissedAt: state.gettingStarted.dismissedAt,
