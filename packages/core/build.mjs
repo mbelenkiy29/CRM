@@ -1,4 +1,5 @@
 import { glob } from 'glob'
+import { cp, mkdir } from 'node:fs/promises'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { buildPackage } from '../../scripts/build-package.mjs'
@@ -33,6 +34,11 @@ await buildPackage(packageDir, {
   copyJsonIgnore: ['**/i18n/**'],
   rewriteOptions,
 })
+
+const merchantAdvancesAssetsSource = join(packageDir, 'src', 'modules', 'merchant_advances', 'assets')
+const merchantAdvancesAssetsDist = join(distDir, 'modules', 'merchant_advances', 'assets')
+await mkdir(merchantAdvancesAssetsDist, { recursive: true })
+await cp(merchantAdvancesAssetsSource, merchantAdvancesAssetsDist, { recursive: true })
 
 const generatedEntryPoints = await glob('generated/**/*.{ts,tsx}', {
   cwd: packageDir,

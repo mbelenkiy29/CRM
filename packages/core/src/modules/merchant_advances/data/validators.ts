@@ -44,14 +44,18 @@ export const dealUpdateSchema = dealCreateSchema.partial().extend({
 
 export const dealDeleteSchema = z.object({ id: uuid })
 
+const onboardingFunderRoute = z.enum(['email', 'portal', 'webhook', 'api_deferred'])
+
 export const funderCreateSchema = z.object({
   name: z.string().trim().min(1).max(300),
   code: z.string().trim().max(80).optional().nullable(),
   submitMethod: z.enum(MCA_SUBMIT_METHODS).optional(),
+  route: onboardingFunderRoute.optional(),
   submitEmail: z.string().email().optional().nullable(),
   portalUrl: z.string().url().optional().nullable(),
   webhookUrl: z.string().url().optional().nullable(),
   apiProviderKey: z.string().trim().max(120).optional().nullable(),
+  fromAddressOverride: z.string().email().optional().nullable(),
   requiresUnstampedStatements: z.boolean().optional(),
   supportsStatusPoll: z.boolean().optional(),
   criteria: z.record(z.string(), z.unknown()).optional().nullable(),
@@ -234,6 +238,8 @@ export const workspaceSettingsUpdateSchema = z.object({
   uploadLinksEnabled: z.boolean().optional(),
   uploadLinkTtlHours: z.number().int().min(1).max(720).optional(),
   intakeWebhookSecret: z.string().trim().min(8).max(200).optional().nullable(),
+  brokerLogoAttachmentId: uuid.optional().nullable(),
+  stampDestinationFunder: z.boolean().optional(),
 })
 
 export const workspaceSettingsSaveSchema = workspaceSettingsUpdateSchema.extend({
@@ -362,8 +368,66 @@ export const importMappingCreateSchema = z.object({
 })
 
 export type IntakeCommandInput = z.infer<typeof intakeCommandSchema>
+export const onboardingSaveSchema = z.object({
+  organizationId: uuid,
+  tenantId: uuid,
+  step: z.enum(['welcome', 'shop', 'intake', 'people', 'funders', 'documents', 'extras', 'first_deal']).optional(),
+  skipped: z.array(z.enum(['welcome', 'shop', 'intake', 'people', 'funders', 'documents', 'extras', 'first_deal'])).optional(),
+  shop: z.record(z.string(), z.unknown()).optional(),
+  seats: z.array(z.record(z.string(), z.unknown())).optional(),
+  intake: z.record(z.string(), z.unknown()).optional(),
+  fundersImported: z.boolean().optional(),
+  senders: z.array(z.record(z.string(), z.unknown())).optional(),
+  extras: z.record(z.string(), z.unknown()).optional(),
+  documents: z.record(z.string(), z.unknown()).optional(),
+  firstDeal: z.record(z.string(), z.unknown()).optional(),
+  firstDealId: uuid.optional().nullable(),
+  defaultOriginatorUserId: uuid.optional().nullable(),
+  complete: z.boolean().optional(),
+  restart: z.boolean().optional(),
+  skipStep: z.enum(['welcome', 'shop', 'intake', 'people', 'funders', 'documents', 'extras', 'first_deal']).optional(),
+  gettingStarted: z.object({
+    dismissedAt: z.string().max(40).nullable().optional(),
+    completedAt: z.string().max(40).nullable().optional(),
+    currentStep: z.number().int().min(0).max(20).optional(),
+  }).optional(),
+})
+
+export const onboardingFirstDealActions = [
+  'ensure',
+  'score',
+  'select',
+  'submit',
+  'reply',
+  'skip',
+] as const
+
+export const onboardingActionSchema = z.object({
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+  action: z.enum(onboardingFirstDealActions).optional(),
+  dealId: uuid.optional().nullable(),
+  funderIds: z.array(uuid).max(20).optional(),
+  skipWithWarning: z.boolean().optional(),
+})
+
+export const funderCsvImportSchema = z.object({
+  organizationId: uuid.optional(),
+  tenantId: uuid.optional(),
+  spreadsheetText: z.string().min(1).max(2_000_000),
+  commit: z.boolean().optional(),
+})
+
+export const onboardingExtrasSecretsSchema = z.object({
+  smsApiKey: z.string().trim().min(4).max(400).optional().nullable(),
+  esignApiKey: z.string().trim().min(4).max(400).optional().nullable(),
+})
+
 export type WorkspaceSettingsSaveInput = z.infer<typeof workspaceSettingsSaveSchema>
 export type WorkspaceSettingsUpdateInput = z.infer<typeof workspaceSettingsUpdateSchema>
+export type OnboardingSaveInput = z.infer<typeof onboardingSaveSchema>
+export type OnboardingActionInput = z.infer<typeof onboardingActionSchema>
+export type FunderCsvImportInput = z.infer<typeof funderCsvImportSchema>
 export type StatementAnalyzeInput = z.infer<typeof statementAnalyzeSchema>
 export type StatementReviewInput = z.infer<typeof statementReviewSchema>
 export type RenewalListQuery = z.infer<typeof renewalListQuerySchema>

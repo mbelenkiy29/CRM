@@ -103,6 +103,9 @@ const saveSettingsCommand: CommandHandler<WorkspaceSettingsSaveInput, SaveWorksp
     if (hasOwn(input, 'watermarkEnabled') && input.watermarkEnabled !== undefined) {
       settings.watermarkEnabled = input.watermarkEnabled
     }
+    if (hasOwn(input, 'brokerLogoAttachmentId')) {
+      settings.brokerLogoAttachmentId = input.brokerLogoAttachmentId ?? null
+    }
     await em.flush()
 
     const configService = tryResolve<ModuleConfigService>(ctx.container, 'moduleConfigService')

@@ -13,6 +13,7 @@ export const notificationTypes: NotificationTypeDefinition[] = [
     severity: 'info',
     linkHref: dealLink,
     expiresAfterHours: 168,
+    actions: [],
   },
   {
     type: 'merchant_advances.submission.failed',
@@ -24,6 +25,7 @@ export const notificationTypes: NotificationTypeDefinition[] = [
     severity: 'warning',
     linkHref: dealLink,
     expiresAfterHours: 168,
+    actions: [],
   },
   {
     type: 'merchant_advances.offer.created',
@@ -35,6 +37,7 @@ export const notificationTypes: NotificationTypeDefinition[] = [
     severity: 'success',
     linkHref: dealLink,
     expiresAfterHours: 168,
+    actions: [],
   },
   {
     type: 'merchant_advances.reply.decline',
@@ -46,6 +49,7 @@ export const notificationTypes: NotificationTypeDefinition[] = [
     severity: 'warning',
     linkHref: dealLink,
     expiresAfterHours: 168,
+    actions: [],
   },
   {
     type: 'merchant_advances.reply.stip_requested',
@@ -57,6 +61,7 @@ export const notificationTypes: NotificationTypeDefinition[] = [
     severity: 'warning',
     linkHref: dealLink,
     expiresAfterHours: 168,
+    actions: [],
   },
   {
     type: 'merchant_advances.renewal.surfaced',
@@ -68,5 +73,6 @@ export const notificationTypes: NotificationTypeDefinition[] = [
     severity: 'info',
     linkHref: dealLink,
     expiresAfterHours: 336,
+    actions: [],
   },
 ]

@@ -456,5 +456,14 @@ None for Phase 0 design. Live 20-funder API payloads are out of Phase 0 and trac
 - **Fully compliant**: Approved — ready for Phase 0 implementation and per-feature worktrees.
 
 ## Changelog
+### [2026-08-30]
+- Pilot-style shop onboarding wizard at `/backend/merchant_advances/onboarding`.
+- Persists `mca_workspace_settings.onboarding` plus `plan=supercharged` and `trialEndsAt=+15 days` (no card collection).
+- First-run gate redirects admin/superadmin landing to the wizard when `completedAt` is null; managers/reps see an ask-an-admin banner and cannot open the wizard.
+- Settings → Setup reopens the wizard, rotates the intake secret, and shows intake / funder / sender / extras chips.
+- SMS, ACH e-sign, and outbound webhook extras are config + stubs (encrypted keys, no 10DLC or e-sign ceremony).
+- Events: `merchant_advances.onboarding.step_completed`, `merchant_advances.onboarding.completed`.
+- Humans still pick funders; first-deal create/score/select never auto-submits.
+
 ### [2026-08-29]
 - Initial specification and feature decomposition for MCA Pilot parity on Open Mercato.

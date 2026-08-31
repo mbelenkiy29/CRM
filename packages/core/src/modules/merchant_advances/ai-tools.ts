@@ -2,7 +2,6 @@ import { z } from 'zod'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { AwilixContainer } from 'awilix'
 import { defineAiTool } from '@open-mercato/ai-assistant/modules/ai_assistant/lib/ai-tool-definition'
-import type { AiToolDefinition } from '@open-mercato/ai-assistant/modules/ai_assistant/lib/types'
 import { findOneWithDecryption, findWithDecryption } from '@open-mercato/shared/lib/encryption/find'
 import { McaDeal, McaStatementAnalysis } from './data/entities'
 import { serializeAnalysis } from './lib/underwriting/serializeAnalysis'
@@ -25,7 +24,7 @@ function requireScope(ctx: ToolContext): { tenantId: string; organizationId: str
   return { tenantId: ctx.tenantId, organizationId: ctx.organizationId }
 }
 
-const getAnalysisTool: AiToolDefinition = defineAiTool({
+const getAnalysisTool = defineAiTool({
   name: 'merchant_advances.get_statement_analysis',
   description: 'Read first-pass bank-statement underwriting metrics for an MCA deal. Does not replace a human underwriter and never submits funders.',
   inputSchema: z.object({
@@ -59,7 +58,7 @@ const getAnalysisTool: AiToolDefinition = defineAiTool({
   },
 })
 
-const rerunAnalysisTool: AiToolDefinition = defineAiTool({
+const rerunAnalysisTool = defineAiTool({
   name: 'merchant_advances.rerun_statement_analysis',
   description: 'Queue a first-pass re-analysis of bank statements on an MCA deal. A human must still review the box check. Never auto-submits funders.',
   inputSchema: statementAnalyzeSchema.pick({ dealId: true, attachmentId: true, documentId: true }),
@@ -116,5 +115,5 @@ const rerunAnalysisTool: AiToolDefinition = defineAiTool({
   },
 })
 
-export const aiTools: AiToolDefinition[] = [getAnalysisTool, rerunAnalysisTool]
+export const aiTools = [getAnalysisTool, rerunAnalysisTool]
 export default aiTools

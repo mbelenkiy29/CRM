@@ -13,6 +13,7 @@ import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { Plus } from 'lucide-react'
 import { pipelineStatusVariant } from './statusVariant'
+import { McaPageChrome } from '../components/McaPageChrome'
 
 type DealRow = {
   id: string
@@ -83,6 +84,7 @@ export default function MerchantAdvancesDealsPage() {
   return (
     <Page>
       <PageBody>
+        <McaPageChrome />
         <DataTable
           title={t('merchant_advances.deals.title')}
           columns={columns}
@@ -99,7 +101,7 @@ export default function MerchantAdvancesDealsPage() {
           )}
           toolbar={(
             <Button asChild>
-              <Link href="/backend/merchant_advances/create">
+              <Link href="/backend/merchant_advances/create" data-tour-id="deals-new">
                 <Plus className="size-4" />
                 {t('merchant_advances.deals.create')}
               </Link>

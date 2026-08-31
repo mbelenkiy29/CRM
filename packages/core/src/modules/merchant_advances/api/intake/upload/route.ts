@@ -231,50 +231,42 @@ async function handleRouteError(err: unknown, logMessage: string): Promise<Respo
 }
 
 export const openApi: OpenApiRouteDoc = {
-  POST: {
-    path: '/merchant_advances/intake/upload',
-    summary: 'Issue a signed merchant upload token for an MCA deal',
-    tags: ['Merchant Advances'],
-    request: { body: { content: { 'application/json': { schema: issueUploadTokenSchema } } } },
-    responses: {
-      200: {
-        description: 'Signed upload token.',
-        content: {
-          'application/json': {
-            schema: z.object({
-              ok: z.literal(true),
-              result: z.object({
-                token: z.string(),
-                tokenHash: z.string(),
-                expiresAt: z.string(),
-                classification: z.string(),
-                dealId: z.string().uuid(),
-              }),
-            }),
-          },
-        },
-      },
-    },
-  },
-  PUT: {
-    path: '/merchant_advances/intake/upload',
-    summary: 'Upload a classified statement or application using a signed token',
-    tags: ['Merchant Advances'],
-    request: {
-      body: {
-        content: {
-          'multipart/form-data': {
-            schema: z.object({
+  tag: 'Merchant Advances',
+  summary: 'Issue or consume a signed merchant upload token',
+  methods: {
+    POST: {
+      summary: 'Issue a signed merchant upload token for an MCA deal',
+      requestBody: { schema: issueUploadTokenSchema },
+      responses: [
+        {
+          status: 200,
+          description: 'Signed upload token.',
+          schema: z.object({
+            ok: z.literal(true),
+            result: z.object({
               token: z.string(),
-              file: z.string().describe('Binary file payload'),
+              tokenHash: z.string(),
+              expiresAt: z.string(),
+              classification: z.string(),
+              dealId: z.string().uuid(),
             }),
-          },
+          }),
         },
-      },
+      ],
     },
-    responses: {
-      200: { description: 'Attachment stored and classified.' },
-      410: { description: 'Token invalid or expired.' },
+    PUT: {
+      summary: 'Upload a classified statement or application using a signed token',
+      requestBody: {
+        contentType: 'multipart/form-data',
+        schema: z.object({
+          token: z.string(),
+          file: z.string().describe('Binary file payload'),
+        }),
+      },
+      responses: [
+        { status: 200, description: 'Attachment stored and classified.' },
+        { status: 410, description: 'Token invalid or expired.' },
+      ],
     },
   },
 }

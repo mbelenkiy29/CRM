@@ -17,6 +17,8 @@ const events = [
   { id: 'merchant_advances.funding.created', label: 'MCA Funding Created', entity: 'funding', category: 'crud', clientBroadcast: true },
   { id: 'merchant_advances.renewal.surfaced', label: 'MCA Renewal Surfaced', entity: 'renewal', category: 'lifecycle', clientBroadcast: true },
   { id: 'merchant_advances.import.completed', label: 'MCA Import Completed', entity: 'import', category: 'lifecycle', clientBroadcast: true },
+  { id: 'merchant_advances.onboarding.step_completed', label: 'MCA Onboarding Step Completed', entity: 'onboarding', category: 'lifecycle' },
+  { id: 'merchant_advances.onboarding.completed', label: 'MCA Onboarding Completed', entity: 'onboarding', category: 'lifecycle', clientBroadcast: true },
 ] as const
 
 export const eventsConfig = createModuleEvents({ moduleId: 'merchant_advances', events })

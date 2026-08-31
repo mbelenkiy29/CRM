@@ -202,26 +202,22 @@ const resultSchema = z.object({
 }).passthrough()
 
 export const openApi: OpenApiRouteDoc = {
-  POST: {
-    path: '/merchant_advances/intake/form',
-    summary: 'Create an MCA deal from a JotForm, GoHighLevel, Zoho, or custom form webhook',
-    tags: ['Merchant Advances'],
-    request: {
-      body: {
-        content: {
-          'application/json': {
-            schema: z.object({
-              provider: z.enum(INTAKE_FORM_PROVIDERS).optional(),
-              businessName: z.string().optional(),
-            }).passthrough(),
-          },
-        },
+  tag: 'Merchant Advances',
+  summary: 'Create an MCA deal from a JotForm, GoHighLevel, Zoho, or custom form webhook',
+  methods: {
+    POST: {
+      summary: 'Create an MCA deal from a JotForm, GoHighLevel, Zoho, or custom form webhook',
+      requestBody: {
+        schema: z.object({
+          provider: z.enum(INTAKE_FORM_PROVIDERS).optional(),
+          businessName: z.string().optional(),
+        }).passthrough(),
       },
-    },
-    responses: {
-      200: { description: 'Deal created from the inbound form.', content: { 'application/json': { schema: z.object({ ok: z.literal(true), result: resultSchema }) } } },
-      401: { description: 'Missing or invalid intake secret.' },
-      404: { description: 'Webhooks module is disabled.' },
+      responses: [
+        { status: 200, description: 'Deal created from the inbound form.', schema: z.object({ ok: z.literal(true), result: resultSchema }) },
+        { status: 401, description: 'Missing or invalid intake secret.' },
+        { status: 404, description: 'Webhooks module is disabled.' },
+      ],
     },
   },
 }

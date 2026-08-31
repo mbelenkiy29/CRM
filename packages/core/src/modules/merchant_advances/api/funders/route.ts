@@ -50,8 +50,11 @@ function transformFunder(item: unknown): unknown {
     code: readString(record, 'code', 'code'),
     submitMethod: readString(record, 'submit_method', 'submitMethod'),
     submitEmail: readString(record, 'submit_email', 'submitEmail'),
+    portalUrl: readString(record, 'portal_url', 'portalUrl'),
+    webhookUrl: readString(record, 'webhook_url', 'webhookUrl'),
     isActive: readBool(record, 'is_active', 'isActive', true),
     requiresUnstampedStatements: readBool(record, 'requires_unstamped_statements', 'requiresUnstampedStatements'),
+    criteria: record.criteria ?? null,
     createdAt: toIso(record.created_at ?? record.createdAt),
     updatedAt: toIso(record.updated_at ?? record.updatedAt),
   }
@@ -70,7 +73,7 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
   list: {
     schema: listSchema,
     entityId: 'merchant_advances:mca_funder',
-    fields: ['id', 'name', 'code', 'submit_method', 'submit_email', 'is_active', 'requires_unstamped_statements', 'created_at', 'updated_at'],
+    fields: ['id', 'name', 'code', 'submit_method', 'submit_email', 'portal_url', 'webhook_url', 'is_active', 'requires_unstamped_statements', 'criteria', 'created_at', 'updated_at'],
     sortFieldMap: { name: 'name', createdAt: 'created_at', updatedAt: 'updated_at' },
     buildFilters: async (query) => {
       const filters: Record<string, unknown> = {}
@@ -86,17 +89,22 @@ const crud = makeCrudRoute<RawInput, RawInput, ListQuery>({
     schema: rawBodySchema,
     mapToEntity: (input, ctx) => {
       const parsed = funderCreateSchema.parse({ ...input, ...scopeFromContext(ctx) })
+      const submitMethod = parsed.route === 'api_deferred' ? 'api' : (parsed.submitMethod ?? parsed.route ?? 'email')
+      const criteria = {
+        ...(parsed.criteria ?? {}),
+        ...(parsed.fromAddressOverride ? { fromAddressOverride: parsed.fromAddressOverride } : {}),
+      }
       return {
         name: parsed.name,
         code: toNullableText(parsed.code),
-        submitMethod: parsed.submitMethod ?? 'email',
+        submitMethod,
         submitEmail: toNullableText(parsed.submitEmail),
         portalUrl: toNullableText(parsed.portalUrl),
         webhookUrl: toNullableText(parsed.webhookUrl),
         apiProviderKey: toNullableText(parsed.apiProviderKey),
         requiresUnstampedStatements: parsed.requiresUnstampedStatements === true,
-        supportsStatusPoll: parsed.supportsStatusPoll === true,
-        criteria: parsed.criteria ?? null,
+        supportsStatusPoll: false,
+        criteria: Object.keys(criteria).length ? criteria : null,
         isActive: parsed.isActive !== false,
       }
     },

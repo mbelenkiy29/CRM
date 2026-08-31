@@ -170,21 +170,21 @@ const settingsResultSchema = z.object({
 }).passthrough()
 
 export const openApi: OpenApiRouteDoc = {
-  GET: {
-    path: '/merchant_advances/settings',
-    summary: 'Load MCA workspace intake and assignment settings',
-    tags: ['Merchant Advances'],
-    responses: {
-      200: { description: 'Workspace settings.', content: { 'application/json': { schema: z.object({ ok: z.literal(true), result: settingsResultSchema }) } } },
+  tag: 'Merchant Advances',
+  summary: 'MCA workspace intake and assignment settings',
+  methods: {
+    GET: {
+      summary: 'Load MCA workspace intake and assignment settings',
+      responses: [
+        { status: 200, description: 'Workspace settings.', schema: z.object({ ok: z.literal(true), result: settingsResultSchema }) },
+      ],
     },
-  },
-  PUT: {
-    path: '/merchant_advances/settings',
-    summary: 'Update MCA workspace intake and assignment settings',
-    tags: ['Merchant Advances'],
-    request: { body: { content: { 'application/json': { schema: workspaceSettingsUpdateSchema } } } },
-    responses: {
-      200: { description: 'Settings saved.', content: { 'application/json': { schema: z.object({ ok: z.literal(true), result: settingsResultSchema }) } } },
+    PUT: {
+      summary: 'Update MCA workspace intake and assignment settings',
+      requestBody: { schema: workspaceSettingsUpdateSchema },
+      responses: [
+        { status: 200, description: 'Settings saved.', schema: z.object({ ok: z.literal(true), result: settingsResultSchema }) },
+      ],
     },
   },
 }

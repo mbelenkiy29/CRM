@@ -9,6 +9,9 @@ import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { updateCrud } from '@open-mercato/ui/backend/utils/crud'
 import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
+import { GettingStartedSettingsCard } from '../../components/GettingStartedSettingsCard'
+import { OnboardingSetupPanel } from '../../components/OnboardingSetupPanel'
+import { McaPageChrome } from '../../components/McaPageChrome'
 
 type SettingsValues = {
   defaultFromAddress: string
@@ -95,11 +98,13 @@ export default function MerchantAdvancesSettingsPage() {
         description={t('merchant_advances.settings.description')}
       />
       <PageBody>
+        <McaPageChrome />
         <ContextHelp title={t('merchant_advances.settings.intakeHelpTitle')}>
           {t('merchant_advances.settings.intakeHelpBody')}
         </ContextHelp>
         {error ? <ErrorMessage label={error} /> : null}
         {!values && !error ? <LoadingMessage label={t('merchant_advances.common.loading')} /> : null}
+        <GettingStartedSettingsCard />
         {values ? (
           <CrudForm
             title={t('merchant_advances.settings.formTitle')}
@@ -122,6 +127,7 @@ export default function MerchantAdvancesSettingsPage() {
             }}
           />
         ) : null}
+        {values ? <OnboardingSetupPanel /> : null}
       </PageBody>
     </Page>
   )
