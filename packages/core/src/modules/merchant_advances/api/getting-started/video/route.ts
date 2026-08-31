@@ -11,19 +11,28 @@ export const metadata = {
   GET: { requireAuth: true, requireFeatures: ['merchant_advances.deal.view'] },
 }
 
-const ASSETS = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../../assets')
+function resolveAssetPath(filename: string): string | null {
+  const candidates = [
+    path.join(path.dirname(fileURLToPath(import.meta.url)), '../../../assets', filename),
+    path.join(process.cwd(), 'packages/core/src/modules/merchant_advances/assets', filename),
+    path.join(process.cwd(), '../packages/core/src/modules/merchant_advances/assets', filename),
+    path.join(process.cwd(), 'node_modules/@open-mercato/core/dist/modules/merchant_advances/assets', filename),
+    path.join(process.cwd(), 'packages/core/dist/modules/merchant_advances/assets', filename),
+  ]
+  return candidates.find((candidate) => existsSync(candidate)) ?? null
+}
 
-function assetPath(kind: string | null): { file: string; type: string } {
+function assetPath(kind: string | null): { file: string | null; type: string } {
   if (kind === 'captions') {
-    return { file: path.join(ASSETS, 'getting-started.en.vtt'), type: 'text/vtt; charset=utf-8' }
+    return { file: resolveAssetPath('getting-started.en.vtt'), type: 'text/vtt; charset=utf-8' }
   }
-  return { file: path.join(ASSETS, 'getting-started.mp4'), type: 'video/mp4' }
+  return { file: resolveAssetPath('getting-started.mp4'), type: 'video/mp4' }
 }
 
 export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url)
   const { file, type } = assetPath(url.searchParams.get('kind'))
-  if (!existsSync(file)) {
+  if (!file) {
     const { translate } = await resolveTranslations()
     return NextResponse.json(
       { error: translate('merchant_advances.errors.tourSaveFailed', 'Getting started media is missing.') },

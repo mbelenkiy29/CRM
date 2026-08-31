@@ -2,9 +2,14 @@
 
 import * as React from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { useGuardedMutation } from '@open-mercato/ui/backend/injection/useGuardedMutation'
 import { readApiResultOrThrow, withScopedApiRequestHeaders } from '@open-mercato/ui/backend/utils/apiCall'
-import { buildOptimisticLockHeader } from '@open-mercato/ui/backend/utils/optimisticLock'
+import {
+  buildOptimisticLockHeader,
+  extractOptimisticLockConflict,
+  extractRecordLockConflict,
+} from '@open-mercato/ui/backend/utils/optimisticLock'
 import { Button } from '@open-mercato/ui/primitives/button'
 import {
   Dialog,
@@ -115,6 +120,12 @@ export function GettingStartedTour() {
         setOpen(launch)
         if (launch) {
           setStepIndex(queryTour === 'getting-started' ? 0 : nextTour.currentStep)
+          if (queryTour !== 'getting-started') {
+            const resumedStep = gettingStartedStepByIndex(nextTour.currentStep)
+            if (resumedStep.route !== pathname) {
+              router.push(resumedStep.route)
+            }
+          }
         }
       } catch {
         if (!cancelled) {
@@ -126,7 +137,7 @@ export function GettingStartedTour() {
     return () => {
       cancelled = true
     }
-  }, [queryTour])
+  }, [pathname, queryTour, router])
 
   const persist = React.useCallback(async (next: McaGettingStartedState) => {
     if (busyRef.current) return false
@@ -160,7 +171,10 @@ export function GettingStartedTour() {
       return true
     } catch (err) {
       setOpen(true)
-      throw err
+      if (extractOptimisticLockConflict(err) || extractRecordLockConflict(err)) {
+        throw err
+      }
+      return false
     } finally {
       busyRef.current = false
       setBusy(false)
@@ -183,20 +197,26 @@ export function GettingStartedTour() {
         completedAt: completed ? now : tour.completedAt,
         currentStep: completed ? GETTING_STARTED_STEPS.length - 1 : stepIndex,
       })
-      if (!persisted) return
+      if (!persisted) {
+        flash(t('merchant_advances.errors.tourSaveFailed'), 'error')
+        return
+      }
       clearQuery()
       setOpen(false)
     } catch {
       setOpen(true)
     }
-  }, [clearQuery, persist, stepIndex, tour])
+  }, [clearQuery, persist, stepIndex, t, tour])
 
   const go = React.useCallback(async (nextIndex: number) => {
     const clamped = Math.max(0, Math.min(GETTING_STARTED_STEPS.length - 1, nextIndex))
     const step = gettingStartedStepByIndex(clamped)
     try {
       const persisted = await persist({ ...tour, currentStep: clamped, dismissedAt: null, completedAt: null })
-      if (!persisted) return
+      if (!persisted) {
+        flash(t('merchant_advances.errors.tourSaveFailed'), 'error')
+        return
+      }
       setStepIndex(clamped)
       if (step.route !== pathname) {
         router.push(step.route)
@@ -206,7 +226,7 @@ export function GettingStartedTour() {
     } catch {
       setOpen(true)
     }
-  }, [clearQuery, pathname, persist, router, tour])
+  }, [clearQuery, pathname, persist, router, t, tour])
 
   React.useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

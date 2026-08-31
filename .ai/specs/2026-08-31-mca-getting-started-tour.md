@@ -43,4 +43,4 @@ Implementation plan: `docs/superpowers/plans/2026-08-31-mca-getting-started-tour
 Additive JSON fields and additive status API fields. Existing onboarding documents parse to `EMPTY_GETTING_STARTED`. No deprecation.
 
 ## Changelog
-- 2026-08-31: Spec opened with the writing-plans document. Not implemented yet.
+- 2026-08-31: Implemented tour JSON persistence, dialog and spotlight steps, authenticated video route, and Settings replay.
