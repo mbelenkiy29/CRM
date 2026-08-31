@@ -119,13 +119,6 @@ export function OnboardingSetupPanel() {
         <Button asChild variant="outline">
           <Link href="/backend/merchant_advances/onboarding">{t('merchant_advances.settings.setup.editSenders')}</Link>
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push('/backend/merchant_advances?tour=getting-started')}
-        >
-          {t('merchant_advances.tour.replay')}
-        </Button>
       </div>
     </section>
   )

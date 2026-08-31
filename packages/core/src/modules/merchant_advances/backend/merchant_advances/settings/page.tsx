@@ -9,6 +9,7 @@ import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { updateCrud } from '@open-mercato/ui/backend/utils/crud'
 import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
+import { GettingStartedSettingsCard } from '../../components/GettingStartedSettingsCard'
 import { OnboardingSetupPanel } from '../../components/OnboardingSetupPanel'
 import { McaPageChrome } from '../../components/McaPageChrome'
 
@@ -103,6 +104,7 @@ export default function MerchantAdvancesSettingsPage() {
         </ContextHelp>
         {error ? <ErrorMessage label={error} /> : null}
         {!values && !error ? <LoadingMessage label={t('merchant_advances.common.loading')} /> : null}
+        <GettingStartedSettingsCard />
         {values ? (
           <CrudForm
             title={t('merchant_advances.settings.formTitle')}
