@@ -386,6 +386,11 @@ export const onboardingSaveSchema = z.object({
   complete: z.boolean().optional(),
   restart: z.boolean().optional(),
   skipStep: z.enum(['welcome', 'shop', 'intake', 'people', 'funders', 'documents', 'extras', 'first_deal']).optional(),
+  gettingStarted: z.object({
+    dismissedAt: z.string().max(40).nullable().optional(),
+    completedAt: z.string().max(40).nullable().optional(),
+    currentStep: z.number().int().min(0).max(20).optional(),
+  }).optional(),
 })
 
 export const onboardingFirstDealActions = [

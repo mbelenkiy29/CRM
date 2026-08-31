@@ -4,6 +4,7 @@ import { resolveTranslations } from '@open-mercato/shared/lib/i18n/server'
 import type { OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 import { loadWorkspaceSettings, settingsOnboardingState } from '../../../commands/onboarding'
 import { canAdministerOnboarding, shouldShowSetupBanner } from '../../../lib/onboarding/gate'
+import { shouldLaunchGettingStarted } from '../../../lib/onboarding/gettingStarted'
 import { resolveMerchantAdvancesRouteContext } from '../../routeContext'
 
 export const metadata = {
@@ -40,6 +41,16 @@ export async function GET(req: Request): Promise<Response> {
         step: state.step,
         canAdminister,
         showSetupBanner: shouldShowSetupBanner({ grantedFeatures: granted, completedAt: state.completedAt }),
+        gettingStarted: {
+          dismissedAt: state.gettingStarted.dismissedAt,
+          completedAt: state.gettingStarted.completedAt,
+          currentStep: state.gettingStarted.currentStep,
+          shouldLaunch: shouldLaunchGettingStarted({
+            onboardingCompletedAt: state.completedAt,
+            tour: state.gettingStarted,
+            queryTour: null,
+          }),
+        },
       },
     })
   } catch (err) {

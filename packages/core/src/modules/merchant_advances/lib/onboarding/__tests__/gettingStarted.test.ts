@@ -1,3 +1,4 @@
+import { onboardingSaveSchema } from '../../../data/validators'
 import { shouldLaunchGettingStarted, GETTING_STARTED_STEPS, gettingStartedStepByIndex } from '../gettingStarted'
 
 describe('shouldLaunchGettingStarted', () => {
@@ -37,6 +38,16 @@ describe('shouldLaunchGettingStarted', () => {
       queryTour: 'getting-started',
     })).toBe(true)
   })
+})
+
+it('accepts a gettingStarted patch on onboardingSaveSchema', () => {
+  const parsed = onboardingSaveSchema.parse({
+    organizationId: '018f1a2b-3c4d-4000-8000-000000000001',
+    tenantId: '018f1a2b-3c4d-4000-8000-000000000002',
+    gettingStarted: { dismissedAt: '2026-08-31T13:00:00.000Z', currentStep: 1 },
+  })
+  expect(parsed.gettingStarted?.dismissedAt).toBe('2026-08-31T13:00:00.000Z')
+  expect(parsed.gettingStarted?.currentStep).toBe(1)
 })
 
 describe('GETTING_STARTED_STEPS', () => {
