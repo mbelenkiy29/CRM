@@ -3,6 +3,7 @@ import type { EntityManager } from '@mikro-orm/postgresql'
 import { registerCommand, type CommandHandler } from '@open-mercato/shared/lib/commands'
 import { ensureOrganizationScope, ensureTenantScope } from '@open-mercato/shared/lib/commands/scope'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
+import { enforceCommandOptimisticLockWithGuards } from '@open-mercato/shared/lib/crud/optimistic-lock-command'
 import { resolveTranslations } from '@open-mercato/shared/lib/i18n/server'
 import type { ModuleConfigService } from '@open-mercato/core/modules/configs/lib/module-config-service'
 import { McaFunder, McaWorkspaceSettings } from '../data/entities'
@@ -136,7 +137,25 @@ const saveOnboardingCommand: CommandHandler<OnboardingSaveInput, OnboardingSaveR
     ensureOrganizationScope(ctx, input.organizationId)
     const scope = { tenantId: input.tenantId, organizationId: input.organizationId }
     const em = (ctx.container.resolve('em') as EntityManager).fork()
-    const settings = await loadWorkspaceSettings(em, scope)
+    let settings = await em.findOne(McaWorkspaceSettings, {
+      tenantId: scope.tenantId,
+      organizationId: scope.organizationId,
+      deletedAt: null,
+    })
+    if (!settings) {
+      settings = em.create(McaWorkspaceSettings, {
+        tenantId: scope.tenantId,
+        organizationId: scope.organizationId,
+      })
+      em.persist(settings)
+    } else {
+      await enforceCommandOptimisticLockWithGuards(ctx.container, {
+        resourceKind: MCA_ONBOARDING_RESOURCE_KIND,
+        resourceId: settings.id,
+        current: settings.updatedAt,
+        request: ctx.request ?? null,
+      })
+    }
     const previous = settingsOnboardingState(settings)
     let next = mergeOnboardingState(previous, input)
     const previousStep = previous.step
