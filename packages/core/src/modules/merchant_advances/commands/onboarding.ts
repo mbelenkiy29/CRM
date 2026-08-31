@@ -565,6 +565,7 @@ const uploadLinkCommand: CommandHandler<OnboardingActionInput, { token: string; 
 }
 
 registerCommand(saveOnboardingCommand)
+export { saveOnboardingCommand }
 registerCommand(rotateSecretCommand)
 registerCommand(testIntakeCommand)
 registerCommand(funderImportCommand)

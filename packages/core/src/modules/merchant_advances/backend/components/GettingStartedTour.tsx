@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { surfaceRecordConflict } from '@open-mercato/ui/backend/conflicts'
 import { useGuardedMutation } from '@open-mercato/ui/backend/injection/useGuardedMutation'
 import { readApiResultOrThrow, withScopedApiRequestHeaders } from '@open-mercato/ui/backend/utils/apiCall'
 import { buildOptimisticLockHeader } from '@open-mercato/ui/backend/utils/optimisticLock'
@@ -160,14 +159,13 @@ export function GettingStartedTour() {
       setTour(next)
       return true
     } catch (err) {
-      surfaceRecordConflict(err, t)
       setOpen(true)
       throw err
     } finally {
       busyRef.current = false
       setBusy(false)
     }
-  }, [retryLastMutation, runMutation, t, updatedAt])
+  }, [retryLastMutation, runMutation, updatedAt])
 
   const clearQuery = React.useCallback(() => {
     if (queryTour !== 'getting-started') return
