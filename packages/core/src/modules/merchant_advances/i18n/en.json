@@ -509,6 +509,7 @@
   "merchant_advances.tour.welcome.explore": "Explore on my own",
   "merchant_advances.tour.welcome.later": "Remind me later",
   "merchant_advances.tour.welcome.videoLabel": "Getting started with MCA deals",
+  "merchant_advances.tour.welcome.captions": "English",
   "merchant_advances.tour.deals.title": "Start from Deals",
   "merchant_advances.tour.deals.body": "New applications land in this list. Use New deal for a manual file.",
   "merchant_advances.tour.pipeline.title": "Move the file on the board",

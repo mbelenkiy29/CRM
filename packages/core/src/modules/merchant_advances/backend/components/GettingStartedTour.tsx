@@ -132,13 +132,17 @@ export function GettingStartedTour() {
 
   const dismiss = React.useCallback(async (completed: boolean) => {
     const now = new Date().toISOString()
-    setOpen(false)
-    clearQuery()
-    await persist({
-      dismissedAt: completed ? tour.dismissedAt : now,
-      completedAt: completed ? now : tour.completedAt,
-      currentStep: completed ? GETTING_STARTED_STEPS.length - 1 : stepIndex,
-    })
+    try {
+      await persist({
+        dismissedAt: completed ? tour.dismissedAt : now,
+        completedAt: completed ? now : tour.completedAt,
+        currentStep: completed ? GETTING_STARTED_STEPS.length - 1 : stepIndex,
+      })
+      clearQuery()
+      setOpen(false)
+    } catch {
+      setOpen(true)
+    }
   }, [clearQuery, persist, stepIndex, tour])
 
   const go = React.useCallback(async (nextIndex: number) => {
@@ -156,6 +160,11 @@ export function GettingStartedTour() {
   React.useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (!open) return
+      if (event.key === 'Escape' && gettingStartedStepByIndex(stepIndex).kind === 'anchor') {
+        event.preventDefault()
+        void dismiss(false)
+        return
+      }
       if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
         event.preventDefault()
         if (stepIndex === 0) void go(1)
@@ -194,7 +203,7 @@ export function GettingStartedTour() {
             <track
               kind="captions"
               srcLang="en"
-              label="English"
+              label={t('merchant_advances.tour.welcome.captions')}
               src="/api/merchant_advances/getting-started/video?kind=captions"
               default
             />
@@ -217,7 +226,7 @@ export function GettingStartedTour() {
 
   return (
     <>
-      <div className="fixed inset-0 z-modal bg-black/50" aria-hidden />
+      <div className="fixed inset-0 z-modal bg-black/50 backdrop-blur-sm" aria-hidden />
       {rect ? (
         <div
           className="pointer-events-none fixed z-modal-elevated rounded-md ring-2 ring-primary"
