@@ -895,7 +895,7 @@ export function OnboardingWizard() {
                 onClick={() => {
                   setSkipWarning(true)
                   void save({ firstDeal: { ...state.firstDeal, skippedWithWarning: true }, complete: true, step: 'first_deal' }, 'merchant_advances.onboarding.completedFlash')
-                    .then(() => router.push('/backend/merchant_advances'))
+                    .then(() => router.push('/backend/merchant_advances?tour=getting-started'))
                 }}
               >
                 {t('merchant_advances.onboarding.firstDeal.skip')}
@@ -912,7 +912,7 @@ export function OnboardingWizard() {
                   firstDealId: state.firstDealId,
                   complete: true,
                   step: 'first_deal',
-                }, 'merchant_advances.onboarding.completedFlash').then(() => router.push('/backend/merchant_advances'))}
+                }, 'merchant_advances.onboarding.completedFlash').then(() => router.push('/backend/merchant_advances?tour=getting-started'))}
               >
                 {t('merchant_advances.onboarding.finish')}
               </Button>

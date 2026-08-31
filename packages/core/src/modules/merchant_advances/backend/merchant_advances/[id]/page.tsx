@@ -30,6 +30,7 @@ import { canTransition } from '../../../lib/pipeline'
 import { CommissionSplits, type CommissionSplitRow } from '../../components/CommissionSplits'
 import { FunderMatchList, type FunderMatchRow } from '../../components/FunderMatchList'
 import { pipelineStatusVariant } from '../statusVariant'
+import { McaPageChrome } from '../../components/McaPageChrome'
 
 type Deal = {
   id: string
@@ -577,6 +578,7 @@ export default function MerchantAdvancesDealDetailPage({ params }: { params?: { 
   return (
     <Page>
       <PageBody>
+        <McaPageChrome />
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold">{deal.businessName ?? t('merchant_advances.detail.title')}</h1>

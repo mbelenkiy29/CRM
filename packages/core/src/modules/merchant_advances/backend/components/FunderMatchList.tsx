@@ -41,7 +41,7 @@ export function FunderMatchList({
 
   if (!matches.length) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4" data-tour-id="match-submit">
         <TabEmptyState
           title={t('merchant_advances.detail.matches.empty')}
           description={t('merchant_advances.detail.matches.hint')}
@@ -56,7 +56,7 @@ export function FunderMatchList({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-tour-id="match-submit">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">{t('merchant_advances.detail.matches.pickHint')}</p>
         <div className="flex flex-wrap gap-2">

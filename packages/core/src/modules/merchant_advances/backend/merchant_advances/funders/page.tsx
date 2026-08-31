@@ -7,6 +7,7 @@ import { DataTable } from '@open-mercato/ui/backend/DataTable'
 import { ListEmptyState } from '@open-mercato/ui/backend/filters/ListEmptyState'
 import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
+import { McaPageChrome } from '../../components/McaPageChrome'
 
 type FunderRow = {
   id: string
@@ -61,18 +62,21 @@ export default function MerchantAdvancesFundersPage() {
   return (
     <Page>
       <PageBody>
-        <DataTable
-          title={t('merchant_advances.funders.title')}
-          columns={columns}
-          data={rows}
-          isLoading={loading}
-          emptyState={(
-            <ListEmptyState
-              title={t('merchant_advances.funders.empty.title')}
-              description={t('merchant_advances.funders.empty.description')}
-            />
-          )}
-        />
+        <McaPageChrome />
+        <div data-tour-id="funders-table">
+          <DataTable
+            title={t('merchant_advances.funders.title')}
+            columns={columns}
+            data={rows}
+            isLoading={loading}
+            emptyState={(
+              <ListEmptyState
+                title={t('merchant_advances.funders.empty.title')}
+                description={t('merchant_advances.funders.empty.description')}
+              />
+            )}
+          />
+        </div>
       </PageBody>
     </Page>
   )

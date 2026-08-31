@@ -10,6 +10,7 @@ import { updateCrud } from '@open-mercato/ui/backend/utils/crud'
 import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { OnboardingSetupPanel } from '../../components/OnboardingSetupPanel'
+import { McaPageChrome } from '../../components/McaPageChrome'
 
 type SettingsValues = {
   defaultFromAddress: string
@@ -96,6 +97,7 @@ export default function MerchantAdvancesSettingsPage() {
         description={t('merchant_advances.settings.description')}
       />
       <PageBody>
+        <McaPageChrome />
         <ContextHelp title={t('merchant_advances.settings.intakeHelpTitle')}>
           {t('merchant_advances.settings.intakeHelpBody')}
         </ContextHelp>

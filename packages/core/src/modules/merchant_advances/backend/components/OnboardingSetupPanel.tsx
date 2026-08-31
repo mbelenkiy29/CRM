@@ -44,7 +44,7 @@ export function OnboardingSetupPanel() {
   }, [load])
 
   return (
-    <section className="mt-8 grid gap-4 rounded-md border border-border p-4">
+    <section className="mt-8 grid gap-4 rounded-md border border-border p-4" data-tour-id="setup-replay">
       <div>
         <h2 className="text-base font-medium">{t('merchant_advances.settings.setup.title')}</h2>
         <p className="text-sm text-muted-foreground">{t('merchant_advances.settings.setup.description')}</p>
@@ -118,6 +118,13 @@ export function OnboardingSetupPanel() {
         </Button>
         <Button asChild variant="outline">
           <Link href="/backend/merchant_advances/onboarding">{t('merchant_advances.settings.setup.editSenders')}</Link>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push('/backend/merchant_advances?tour=getting-started')}
+        >
+          {t('merchant_advances.tour.replay')}
         </Button>
       </div>
     </section>
