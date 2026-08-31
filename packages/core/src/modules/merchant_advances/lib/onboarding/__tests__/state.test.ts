@@ -5,10 +5,13 @@ import {
   mergeOnboardingState,
   parseOnboardingState,
   peopleStepComplete,
+  restartOnboarding,
   resumeOnboardingStep,
   shopProfileComplete,
 } from '../state'
 import { resolveOnboardingRedirect, shouldShowSetupBanner } from '../gate'
+import { EMPTY_GETTING_STARTED } from '../types'
+import { shouldLaunchGettingStarted } from '../gettingStarted'
 
 const ADMIN_FEATURES = ['merchant_advances.*']
 const MANAGER_FEATURES = ['merchant_advances.deal.view', 'merchant_advances.deal.manage']
@@ -99,5 +102,43 @@ describe('merchant_advances onboarding gate', () => {
     expect(shouldShowSetupBanner({ grantedFeatures: MANAGER_FEATURES, completedAt: null })).toBe(true)
     expect(shouldShowSetupBanner({ grantedFeatures: ADMIN_FEATURES, completedAt: null })).toBe(false)
     expect(shouldShowSetupBanner({ grantedFeatures: MANAGER_FEATURES, completedAt: '2026-08-30T12:00:00.000Z' })).toBe(false)
+  })
+})
+
+describe('merchant_advances getting started tour state', () => {
+  it('re-arms the tour when onboarding completes', () => {
+    const started = mergeOnboardingState(createEmptyOnboardingState(), {
+      gettingStarted: {
+        dismissedAt: '2026-08-01T00:00:00.000Z',
+        completedAt: '2026-08-01T00:00:00.000Z',
+        currentStep: 3,
+      },
+    })
+    const completed = completeOnboarding(started, new Date('2026-08-31T12:00:00.000Z'))
+    expect(completed.completedAt).toBe('2026-08-31T12:00:00.000Z')
+    expect(completed.gettingStarted).toEqual(EMPTY_GETTING_STARTED)
+  })
+
+  it('round-trips gettingStarted through parseOnboardingState', () => {
+    const saved = mergeOnboardingState(createEmptyOnboardingState(), {
+      gettingStarted: {
+        dismissedAt: null,
+        completedAt: null,
+        currentStep: 2,
+      },
+    })
+    const reloaded = parseOnboardingState(JSON.parse(JSON.stringify(saved)))
+    expect(reloaded.gettingStarted.currentStep).toBe(2)
+    expect(reloaded.gettingStarted.dismissedAt).toBeNull()
+  })
+
+  it('clears the tour when the wizard is restarted', () => {
+    const completed = completeOnboarding(createEmptyOnboardingState(), new Date('2026-08-31T12:00:00.000Z'))
+    const dismissed = mergeOnboardingState(completed, {
+      gettingStarted: { dismissedAt: '2026-08-31T13:00:00.000Z', completedAt: null, currentStep: 0 },
+    })
+    const restarted = restartOnboarding(dismissed)
+    expect(restarted.completedAt).toBeNull()
+    expect(restarted.gettingStarted).toEqual(EMPTY_GETTING_STARTED)
   })
 })

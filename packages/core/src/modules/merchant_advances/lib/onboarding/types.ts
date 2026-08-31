@@ -109,6 +109,18 @@ export type McaOnboardingFirstDeal = {
   skippedWithWarning: boolean
 }
 
+export type McaGettingStartedState = {
+  dismissedAt: string | null
+  completedAt: string | null
+  currentStep: number
+}
+
+export const EMPTY_GETTING_STARTED: McaGettingStartedState = {
+  dismissedAt: null,
+  completedAt: null,
+  currentStep: 0,
+}
+
 export type McaOnboardingState = {
   step: McaOnboardingStep
   completedAt: string | null
@@ -125,6 +137,7 @@ export type McaOnboardingState = {
   defaultOriginatorUserId: string | null
   plan: string
   trialEndsAt: string | null
+  gettingStarted: McaGettingStartedState
 }
 
 export type McaOnboardingStatusChips = {

@@ -1,5 +1,6 @@
 import { MCA_DEFAULT_UPLOAD_TTL_HOURS, resolveUploadTtlHours } from '../intake/uploadLinks'
 import {
+  EMPTY_GETTING_STARTED,
   EMPTY_ONBOARDING_DOCUMENTS,
   EMPTY_ONBOARDING_EXTRAS,
   EMPTY_ONBOARDING_FIRST_DEAL,
@@ -10,6 +11,7 @@ import {
   MCA_ONBOARDING_PLAN,
   MCA_ONBOARDING_STEPS,
   MCA_ONBOARDING_TRIAL_DAYS,
+  type McaGettingStartedState,
   type McaOnboardingAssignment,
   type McaOnboardingDocuments,
   type McaOnboardingExtras,
@@ -90,6 +92,7 @@ export function createEmptyOnboardingState(now = new Date()): McaOnboardingState
     defaultOriginatorUserId: null,
     plan: MCA_ONBOARDING_PLAN,
     trialEndsAt: defaultTrialEndsAt(now),
+    gettingStarted: { ...EMPTY_GETTING_STARTED },
   }
 }
 
@@ -204,6 +207,19 @@ function parseFirstDeal(value: unknown, fallback: McaOnboardingFirstDeal): McaOn
   }
 }
 
+export function parseGettingStarted(value: unknown, fallback = EMPTY_GETTING_STARTED): McaGettingStartedState {
+  if (!isRecord(value)) return { ...fallback }
+  const rawStep = value.currentStep
+  const currentStep = typeof rawStep === 'number' && Number.isInteger(rawStep)
+    ? Math.max(0, Math.min(20, rawStep))
+    : fallback.currentStep
+  return {
+    dismissedAt: asText(value.dismissedAt, 40),
+    completedAt: asText(value.completedAt, 40),
+    currentStep,
+  }
+}
+
 export function parseOnboardingState(value: unknown, now = new Date()): McaOnboardingState {
   const empty = createEmptyOnboardingState(now)
   if (!isRecord(value)) return empty
@@ -228,6 +244,7 @@ export function parseOnboardingState(value: unknown, now = new Date()): McaOnboa
     defaultOriginatorUserId: asUuid(value.defaultOriginatorUserId),
     plan: asText(value.plan, 40) ?? MCA_ONBOARDING_PLAN,
     trialEndsAt: asText(value.trialEndsAt, 40) ?? empty.trialEndsAt,
+    gettingStarted: parseGettingStarted(value.gettingStarted),
   }
 }
 
@@ -250,6 +267,10 @@ export function mergeOnboardingState(
     skipped: 'skipped' in patch ? parsedPatch.skipped : current.skipped,
     plan: current.plan || MCA_ONBOARDING_PLAN,
     trialEndsAt: current.trialEndsAt ?? parsedPatch.trialEndsAt,
+    gettingStarted: parseGettingStarted(
+      (patch as { gettingStarted?: unknown }).gettingStarted ?? current.gettingStarted,
+      current.gettingStarted,
+    ),
   }
 }
 
@@ -313,6 +334,7 @@ export function completeOnboarding(state: McaOnboardingState, now = new Date()):
     ...state,
     completedAt: now.toISOString(),
     step: 'first_deal',
+    gettingStarted: { ...EMPTY_GETTING_STARTED },
   }
 }
 
@@ -321,6 +343,7 @@ export function restartOnboarding(state: McaOnboardingState): McaOnboardingState
     ...state,
     step: 'welcome',
     completedAt: null,
+    gettingStarted: { ...EMPTY_GETTING_STARTED },
   }
 }
 
