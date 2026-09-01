@@ -103,14 +103,20 @@ export function FunderMatchList({
                   </div>
                   {passed.length ? (
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {passed.map((reason) => (
-                        <span
-                          key={`${match.id}-${reason.code ?? reason.label}`}
-                          className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs"
-                        >
-                          {reason.label ?? reason.code}
-                        </span>
-                      ))}
+                      {passed.map((reason) => {
+                        const code = reason.code ?? ''
+                        const label = code
+                          ? t(`merchant_advances.match.reasons.${code}`, reason.label ?? code)
+                          : (reason.label ?? '')
+                        return (
+                          <span
+                            key={`${match.id}-${reason.code ?? reason.label}`}
+                            className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs"
+                          >
+                            {label}
+                          </span>
+                        )
+                      })}
                     </div>
                   ) : null}
                 </div>

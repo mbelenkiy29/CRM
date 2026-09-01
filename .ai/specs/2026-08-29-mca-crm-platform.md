@@ -456,6 +456,9 @@ None for Phase 0 design. Live 20-funder API payloads are out of Phase 0 and trac
 - **Fully compliant**: Approved — ready for Phase 0 implementation and per-feature worktrees.
 
 ## Changelog
+### [2026-09-01]
+- Shop-setup wizard UX: hide logo UUID and default originator, three-choice intake, People shop language, funder list chips that keep spaces/commas, acronym glossary. Details: `.ai/specs/2026-09-01-mca-onboarding-wizard-ux.md`.
+
 ### [2026-08-30]
 - Pilot-style shop onboarding wizard at `/backend/merchant_advances/onboarding`.
 - Persists `mca_workspace_settings.onboarding` plus `plan=supercharged` and `trialEndsAt=+15 days` (no card collection).
