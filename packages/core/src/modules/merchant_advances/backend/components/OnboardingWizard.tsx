@@ -9,6 +9,7 @@ import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { useGuardedMutation } from '@open-mercato/ui/backend/injection/useGuardedMutation'
 import { readApiResultOrThrow } from '@open-mercato/ui/backend/utils/apiCall'
 import { createCrud } from '@open-mercato/ui/backend/utils/crud'
+import { ContextHelp } from '@open-mercato/ui/backend/ContextHelp'
 import { Alert, AlertDescription, AlertTitle } from '@open-mercato/ui/primitives/alert'
 import { Button } from '@open-mercato/ui/primitives/button'
 import { CheckboxField } from '@open-mercato/ui/primitives/checkbox-field'
@@ -20,8 +21,8 @@ import { StepIndicator, type StepIndicatorStep } from '@open-mercato/ui/primitiv
 import { Textarea } from '@open-mercato/ui/primitives/textarea'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { FUNDER_CRITERIA_KEYS } from '../../lib/funderScore'
+import { CRITERIA_LIST_KEYS, isCriteriaListKey } from '../../lib/onboarding/parseListField'
 import {
-  MCA_ONBOARDING_INTAKE_SOURCES,
   MCA_ONBOARDING_STEPS,
   type McaOnboardingIntakeSource,
   type McaOnboardingSeat,
@@ -30,6 +31,8 @@ import {
   type McaOnboardingStep,
 } from '../../lib/onboarding/types'
 import { resumeOnboardingStep } from '../../lib/onboarding/state'
+import { CriteriaFieldLabel } from './onboarding/CriteriaFieldLabel'
+import { CriteriaListInput } from './onboarding/CriteriaListInput'
 
 type OnboardingLoad = {
   onboarding: McaOnboardingState
@@ -64,15 +67,21 @@ const TIMEZONES = [
 ]
 
 const CRITERIA_BOOL = new Set(['allowStacking', 'weekendDepositsOk', 'bankruptcyOk'])
-const CRITERIA_LIST = new Set([
-  'industries',
-  'excludedIndustries',
-  'states',
-  'preferredIndustries',
-  'entityTypes',
-  'excludedSic',
-  'useOfFunds',
-])
+const CRITERIA_LIST = new Set<string>(CRITERIA_LIST_KEYS)
+const INTAKE_FORM_SOURCES = ['jotform', 'gohighlevel', 'zoho', 'custom'] as const
+const INTAKE_CHOICES = ['form', 'spreadsheet', 'unsure'] as const
+
+type IntakeChoice = (typeof INTAKE_CHOICES)[number]
+
+function intakeChoiceOf(source: McaOnboardingIntakeSource | null): IntakeChoice | '' {
+  if (!source) return ''
+  if (source === 'spreadsheet' || source === 'unsure') return source
+  return 'form'
+}
+
+function isIntakeFormSource(source: McaOnboardingIntakeSource | null): source is (typeof INTAKE_FORM_SOURCES)[number] {
+  return Boolean(source && (INTAKE_FORM_SOURCES as readonly string[]).includes(source))
+}
 
 function unwrapApi<T>(body: unknown): T {
   if (body && typeof body === 'object' && 'result' in body) {
@@ -116,6 +125,9 @@ export function OnboardingWizard() {
   const [uploadLink, setUploadLink] = React.useState<string | null>(null)
   const [uploadExpiresAt, setUploadExpiresAt] = React.useState<string | null>(null)
   const [showSamplePayload, setShowSamplePayload] = React.useState(false)
+  const [connectFormOpen, setConnectFormOpen] = React.useState(false)
+  const [appetiteOpen, setAppetiteOpen] = React.useState(false)
+  const [funderFormId, setFunderFormId] = React.useState(0)
   const [smsKey, setSmsKey] = React.useState('')
   const [esignKey, setEsignKey] = React.useState('')
   const [newFunder, setNewFunder] = React.useState({
@@ -286,11 +298,11 @@ export function OnboardingWizard() {
               <Label>{t('merchant_advances.onboarding.shop.currency')}</Label>
               <Input value="USD" readOnly />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="logo">{t('merchant_advances.onboarding.shop.logo')}</Label>
-              <Input id="logo" value={state.shop.brokerLogoAttachmentId ?? ''} onChange={(event) => setState({ ...state, shop: { ...state.shop, brokerLogoAttachmentId: event.target.value || null } })} />
-              <p className="text-xs text-muted-foreground">{t('merchant_advances.onboarding.shop.logoHelp')}</p>
-            </div>
+            <Alert status="information" style="lighter">
+              <AlertTitle>{t('merchant_advances.onboarding.shop.noLicenseTitle')}</AlertTitle>
+              <AlertDescription>{t('merchant_advances.onboarding.shop.noLicense')}</AlertDescription>
+            </Alert>
+            <p className="text-sm text-muted-foreground">{t('merchant_advances.onboarding.shop.logoLater')}</p>
             <div className="grid gap-2">
               <Label htmlFor="from">{t('merchant_advances.onboarding.shop.fromAddress')}</Label>
               <Input id="from" type="email" value={state.shop.defaultFromAddress ?? ''} onChange={(event) => setState({ ...state, shop: { ...state.shop, defaultFromAddress: event.target.value } })} />
@@ -300,116 +312,150 @@ export function OnboardingWizard() {
 
         {step === 'intake' ? (
           <form className="grid max-w-2xl gap-4" onSubmit={preventWizardFormSubmit}>
+            <div className="grid gap-1">
+              <h2 className="text-base font-medium">{t('merchant_advances.onboarding.intake.title')}</h2>
+              <p className="text-sm text-muted-foreground">{t('merchant_advances.onboarding.intake.help')}</p>
+              <p className="text-sm text-muted-foreground">{t('merchant_advances.onboarding.intake.documentsLater')}</p>
+            </div>
             <RadioGroup
-              value={state.intake.source ?? ''}
-              onValueChange={(value) => setState({ ...state, intake: { ...state.intake, source: value as McaOnboardingIntakeSource } })}
+              value={intakeChoiceOf(state.intake.source)}
+              onValueChange={(value) => {
+                const choice = value as IntakeChoice
+                const nextSource: McaOnboardingIntakeSource = choice === 'form'
+                  ? (isIntakeFormSource(state.intake.source) ? state.intake.source : 'custom')
+                  : choice
+                setState({ ...state, intake: { ...state.intake, source: nextSource } })
+                if (choice === 'form') setConnectFormOpen(false)
+              }}
             >
-              {MCA_ONBOARDING_INTAKE_SOURCES.map((source) => (
-                <RadioField key={source} value={source} label={t(`merchant_advances.onboarding.intake.source.${source}`)} />
+              {INTAKE_CHOICES.map((choice) => (
+                <RadioField
+                  key={choice}
+                  value={choice}
+                  label={t(`merchant_advances.onboarding.intake.choice.${choice}`)}
+                />
               ))}
             </RadioGroup>
-            {state.intake.source && !['spreadsheet', 'unsure'].includes(state.intake.source) ? (
-              <div className="grid gap-3 rounded-md border border-border p-4">
-                {!load.webhooksEnabled ? (
-                  <Alert status="warning" style="lighter">
-                    <AlertDescription>{t('merchant_advances.onboarding.intake.webhooksOff')}</AlertDescription>
-                  </Alert>
-                ) : null}
-                <p className="text-sm">{t('merchant_advances.onboarding.intake.webhookUrl')}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Input readOnly value={load.webhookUrl ?? ''} />
-                  <Button type="button" variant="secondary" onClick={() => void copyText(load.webhookUrl ?? '')}>{t('merchant_advances.onboarding.copy')}</Button>
-                </div>
-                {secretOnce ? (
-                  <Alert status="warning" style="lighter">
-                    <AlertTitle>{t('merchant_advances.onboarding.intake.secretOnce')}</AlertTitle>
-                    <AlertDescription>
-                      <code className="break-all">{secretOnce}</code>
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {load.intakeWebhookSecretConfigured
-                      ? t('merchant_advances.onboarding.intake.secretConfigured')
-                      : t('merchant_advances.onboarding.intake.secretHelp')}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={async () => {
-                      const result = await mutate(
-                        () => readPayload<{ secret: string }>('/api/merchant_advances/onboarding/rotate-secret', { method: 'POST' }),
-                        { rotate: true },
-                      )
-                      setSecretOnce(result.secret)
-                      flash(t('merchant_advances.onboarding.intake.secretIssued'), 'success')
-                    }}
-                  >
-                    {t('merchant_advances.onboarding.intake.issueSecret')}
-                  </Button>
-                  {secretOnce ? (
-                    <Button type="button" variant="secondary" onClick={() => void copyText(secretOnce)}>{t('merchant_advances.onboarding.copy')}</Button>
-                  ) : null}
-                </div>
-                <RadioGroup
-                  value={state.intake.assignment}
-                  onValueChange={(value) => setState({ ...state, intake: { ...state.intake, assignment: value as 'form_owner' | 'round_robin' } })}
-                >
-                  <RadioField value="form_owner" label={t('merchant_advances.onboarding.intake.assignment.form_owner')} />
-                  <RadioField value="round_robin" label={t('merchant_advances.onboarding.intake.assignment.round_robin')} />
-                </RadioGroup>
-                {state.intake.assignment === 'round_robin' ? (
-                  <div className="grid gap-2">
-                    {users.map((user) => (
-                      <CheckboxField
-                        key={user.id}
-                        label={user.email ?? user.id}
-                        checked={state.intake.assigneeUserIds.includes(user.id)}
-                        onCheckedChange={(checked) => {
-                          const ids = checked
-                            ? [...state.intake.assigneeUserIds, user.id]
-                            : state.intake.assigneeUserIds.filter((id) => id !== user.id)
-                          setState({ ...state, intake: { ...state.intake, assigneeUserIds: ids } })
+            {intakeChoiceOf(state.intake.source) === 'form' ? (
+              <div className="grid gap-3">
+                <Button type="button" variant="secondary" onClick={() => setConnectFormOpen((open) => !open)}>
+                  {t(connectFormOpen
+                    ? 'merchant_advances.onboarding.intake.hideConnectForm'
+                    : 'merchant_advances.onboarding.intake.connectForm')}
+                </Button>
+                {connectFormOpen ? (
+                  <div className="grid gap-3 rounded-md border border-border p-4">
+                    <Label>{t('merchant_advances.onboarding.intake.provider')}</Label>
+                    <RadioGroup
+                      value={isIntakeFormSource(state.intake.source) ? state.intake.source ?? 'custom' : 'custom'}
+                      onValueChange={(value) => setState({ ...state, intake: { ...state.intake, source: value as McaOnboardingIntakeSource } })}
+                    >
+                      {INTAKE_FORM_SOURCES.map((source) => (
+                        <RadioField key={source} value={source} label={t(`merchant_advances.onboarding.intake.source.${source}`)} />
+                      ))}
+                    </RadioGroup>
+                    {!load.webhooksEnabled ? (
+                      <Alert status="warning" style="lighter">
+                        <AlertDescription>{t('merchant_advances.onboarding.intake.webhooksOff')}</AlertDescription>
+                      </Alert>
+                    ) : null}
+                    <p className="text-sm">{t('merchant_advances.onboarding.intake.webhookUrl')}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Input readOnly value={load.webhookUrl ?? ''} />
+                      <Button type="button" variant="secondary" onClick={() => void copyText(load.webhookUrl ?? '')}>{t('merchant_advances.onboarding.copy')}</Button>
+                    </div>
+                    {secretOnce ? (
+                      <Alert status="warning" style="lighter">
+                        <AlertTitle>{t('merchant_advances.onboarding.intake.secretOnce')}</AlertTitle>
+                        <AlertDescription>
+                          <code className="break-all">{secretOnce}</code>
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        {load.intakeWebhookSecretConfigured
+                          ? t('merchant_advances.onboarding.intake.secretConfigured')
+                          : t('merchant_advances.onboarding.intake.secretHelp')}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={async () => {
+                          const result = await mutate(
+                            () => readPayload<{ secret: string }>('/api/merchant_advances/onboarding/rotate-secret', { method: 'POST' }),
+                            { rotate: true },
+                          )
+                          setSecretOnce(result.secret)
+                          flash(t('merchant_advances.onboarding.intake.secretIssued'), 'success')
                         }}
-                      />
-                    ))}
+                      >
+                        {t('merchant_advances.onboarding.intake.issueSecret')}
+                      </Button>
+                      {secretOnce ? (
+                        <Button type="button" variant="secondary" onClick={() => void copyText(secretOnce)}>{t('merchant_advances.onboarding.copy')}</Button>
+                      ) : null}
+                    </div>
+                    <RadioGroup
+                      value={state.intake.assignment}
+                      onValueChange={(value) => setState({ ...state, intake: { ...state.intake, assignment: value as 'form_owner' | 'round_robin' } })}
+                    >
+                      <RadioField value="form_owner" label={t('merchant_advances.onboarding.intake.assignment.form_owner')} />
+                      <RadioField value="round_robin" label={t('merchant_advances.onboarding.intake.assignment.round_robin')} />
+                    </RadioGroup>
+                    {state.intake.assignment === 'round_robin' ? (
+                      <div className="grid gap-2">
+                        {users.map((user) => (
+                          <CheckboxField
+                            key={user.id}
+                            label={user.email ?? user.id}
+                            checked={state.intake.assigneeUserIds.includes(user.id)}
+                            onCheckedChange={(checked) => {
+                              const ids = checked
+                                ? [...state.intake.assigneeUserIds, user.id]
+                                : state.intake.assigneeUserIds.filter((id) => id !== user.id)
+                              setState({ ...state, intake: { ...state.intake, assigneeUserIds: ids } })
+                            }}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setShowSamplePayload((open) => !open)}
+                    >
+                      {t(showSamplePayload
+                        ? 'merchant_advances.onboarding.intake.hideSample'
+                        : 'merchant_advances.onboarding.intake.showSample')}
+                    </Button>
+                    {showSamplePayload ? (
+                      <div className="grid gap-2">
+                        <Label>{t('merchant_advances.onboarding.intake.sample')}</Label>
+                        <Textarea readOnly rows={8} value={JSON.stringify(load.samplePayload ?? {}, null, 2)} />
+                      </div>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={async () => {
+                        const result = await mutate(
+                          () => readPayload<{ dealId: string; fetchedUrls: boolean }>('/api/merchant_advances/onboarding/test-intake', { method: 'POST' }),
+                          { fixture: 'sunset-diner' },
+                        )
+                        flash(t('merchant_advances.onboarding.intake.tested'), 'success')
+                        setState({
+                          ...state,
+                          intake: { ...state.intake, testedDealId: result.dealId, secretIssued: true },
+                          firstDealId: state.firstDealId ?? result.dealId,
+                        })
+                      }}
+                    >
+                      {t('merchant_advances.onboarding.intake.test')}
+                    </Button>
                   </div>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowSamplePayload((open) => !open)}
-                >
-                  {t(showSamplePayload
-                    ? 'merchant_advances.onboarding.intake.hideSample'
-                    : 'merchant_advances.onboarding.intake.showSample')}
-                </Button>
-                {showSamplePayload ? (
-                  <div className="grid gap-2">
-                    <Label>{t('merchant_advances.onboarding.intake.sample')}</Label>
-                    <Textarea readOnly rows={8} value={JSON.stringify(load.samplePayload ?? {}, null, 2)} />
-                  </div>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={async () => {
-                    const result = await mutate(
-                      () => readPayload<{ dealId: string; fetchedUrls: boolean }>('/api/merchant_advances/onboarding/test-intake', { method: 'POST' }),
-                      { fixture: 'sunset-diner' },
-                    )
-                    flash(t('merchant_advances.onboarding.intake.tested'), 'success')
-                    setState({
-                      ...state,
-                      intake: { ...state.intake, testedDealId: result.dealId, secretIssued: true },
-                      firstDealId: state.firstDealId ?? result.dealId,
-                    })
-                  }}
-                >
-                  {t('merchant_advances.onboarding.intake.test')}
-                </Button>
               </div>
             ) : null}
             {state.intake.source === 'spreadsheet' ? (
@@ -419,13 +465,16 @@ export function OnboardingWizard() {
                 </AlertDescription>
               </Alert>
             ) : null}
+            {state.intake.source === 'unsure' ? (
+              <p className="text-sm text-muted-foreground">{t('merchant_advances.onboarding.intake.skipHelp')}</p>
+            ) : null}
           </form>
         ) : null}
 
         {step === 'people' ? (
           <section className="grid max-w-2xl gap-4">
             <p className="text-sm text-muted-foreground">{t('merchant_advances.onboarding.people.help')}</p>
-            {users.map((user) => {
+            {users.length ? users.map((user) => {
               const seat = state.seats.find((row) => row.userId === user.id)
               return (
                 <div key={user.id} className="grid gap-2 rounded-md border border-border p-3">
@@ -450,38 +499,41 @@ export function OnboardingWizard() {
                           })
                         }}
                       >
-                        <RadioField value="admin" label={t('merchant_advances.onboarding.people.admin')} />
-                        <RadioField value="rep" label={t('merchant_advances.onboarding.people.rep')} />
+                        <RadioField
+                          value="admin"
+                          label={t('merchant_advances.onboarding.people.admin')}
+                          description={t('merchant_advances.onboarding.people.adminHelp')}
+                        />
+                        <RadioField
+                          value="rep"
+                          label={t('merchant_advances.onboarding.people.rep')}
+                          description={t('merchant_advances.onboarding.people.repHelp')}
+                        />
                       </RadioGroup>
-                      <Input
-                        type="email"
-                        placeholder={t('merchant_advances.onboarding.people.fromAddress')}
-                        value={seat.fromAddress ?? ''}
-                        onChange={(event) => {
-                          setState({
-                            ...state,
-                            seats: state.seats.map((row) => row.userId === user.id ? { ...row, fromAddress: event.target.value || null } : row),
-                          })
-                        }}
-                      />
+                      {seat.floor === 'rep' ? (
+                        <div className="grid gap-2">
+                          <Label htmlFor={`from-${user.id}`}>{t('merchant_advances.onboarding.people.fromAddress')}</Label>
+                          <Input
+                            id={`from-${user.id}`}
+                            type="email"
+                            placeholder={t('merchant_advances.onboarding.people.fromAddressPlaceholder')}
+                            value={seat.fromAddress ?? ''}
+                            onChange={(event) => {
+                              setState({
+                                ...state,
+                                seats: state.seats.map((row) => row.userId === user.id ? { ...row, fromAddress: event.target.value || null } : row),
+                              })
+                            }}
+                          />
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
                 </div>
               )
-            })}
-            <div className="grid gap-2">
-              <Label>{t('merchant_advances.onboarding.people.originator')}</Label>
-              <select
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                value={state.defaultOriginatorUserId ?? ''}
-                onChange={(event) => setState({ ...state, defaultOriginatorUserId: event.target.value || null })}
-              >
-                <option value="">{t('merchant_advances.onboarding.people.originatorNone')}</option>
-                {state.seats.map((seat) => (
-                  <option key={seat.userId} value={seat.userId}>{seat.email ?? seat.userId}</option>
-                ))}
-              </select>
-            </div>
+            }) : (
+              <p className="text-sm text-muted-foreground">{t('merchant_advances.onboarding.people.empty')}</p>
+            )}
           </section>
         ) : null}
 
@@ -526,45 +578,76 @@ export function OnboardingWizard() {
             <div className="grid max-w-2xl gap-3 rounded-md border border-border p-4">
               <h3 className="text-sm font-medium">{t('merchant_advances.onboarding.funders.add')}</h3>
               <Input placeholder={t('merchant_advances.onboarding.funders.name')} value={newFunder.name} onChange={(event) => setNewFunder({ ...newFunder, name: event.target.value })} />
-              <Input placeholder={t('merchant_advances.onboarding.funders.code')} value={newFunder.code} onChange={(event) => setNewFunder({ ...newFunder, code: event.target.value })} />
+              <Input type="email" placeholder={t('merchant_advances.onboarding.funders.contact')} value={newFunder.submitEmail} onChange={(event) => setNewFunder({ ...newFunder, submitEmail: event.target.value })} />
               <RadioGroup value={newFunder.route} onValueChange={(value) => setNewFunder({ ...newFunder, route: value })}>
                 <RadioField value="email" label={t('merchant_advances.method.email')} />
                 <RadioField value="portal" label={t('merchant_advances.method.portal')} />
                 <RadioField value="webhook" label={t('merchant_advances.method.webhook')} />
                 <RadioField value="api_deferred" label={t('merchant_advances.onboarding.funders.apiDeferred')} />
               </RadioGroup>
-              <Input type="email" placeholder={t('merchant_advances.onboarding.funders.contact')} value={newFunder.submitEmail} onChange={(event) => setNewFunder({ ...newFunder, submitEmail: event.target.value })} />
+              <Input placeholder={t('merchant_advances.onboarding.funders.code')} value={newFunder.code} onChange={(event) => setNewFunder({ ...newFunder, code: event.target.value })} />
               <Input type="email" placeholder={t('merchant_advances.onboarding.funders.fromOverride')} value={newFunder.fromAddressOverride} onChange={(event) => setNewFunder({ ...newFunder, fromAddressOverride: event.target.value })} />
               <CheckboxField
                 label={t('merchant_advances.onboarding.funders.unstamped')}
                 checked={newFunder.requiresUnstampedStatements}
                 onCheckedChange={(checked) => setNewFunder({ ...newFunder, requiresUnstampedStatements: Boolean(checked) })}
               />
-              <div className="grid gap-2 md:grid-cols-2">
-                {FUNDER_CRITERIA_KEYS.map((key) => (
-                  <div key={key} className="grid gap-1">
-                    <Label>{t(`merchant_advances.onboarding.criteria.${key}`)}</Label>
-                    {CRITERIA_BOOL.has(key) ? (
-                      <CheckboxField
-                        label={t(`merchant_advances.onboarding.criteria.${key}`)}
-                        checked={Boolean(newFunder.criteria[key])}
-                        onCheckedChange={(checked) => setNewFunder({ ...newFunder, criteria: { ...newFunder.criteria, [key]: Boolean(checked) } })}
-                      />
-                    ) : (
-                      <Input
-                        value={Array.isArray(newFunder.criteria[key]) ? (newFunder.criteria[key] as string[]).join(', ') : String(newFunder.criteria[key] ?? '')}
-                        onChange={(event) => {
-                          const raw = event.target.value
-                          const nextValue = CRITERIA_LIST.has(key)
-                            ? raw.split(',').map((part) => part.trim()).filter(Boolean)
-                            : (raw === '' ? undefined : Number.isFinite(Number(raw)) ? Number(raw) : raw)
-                          setNewFunder({ ...newFunder, criteria: { ...newFunder.criteria, [key]: nextValue } })
-                        }}
-                      />
-                    )}
+              <Button type="button" variant="secondary" onClick={() => setAppetiteOpen((open) => !open)}>
+                {t(appetiteOpen
+                  ? 'merchant_advances.onboarding.funders.hideAppetite'
+                  : 'merchant_advances.onboarding.funders.appetite')}
+              </Button>
+              {appetiteOpen ? (
+                <div className="grid gap-3">
+                  <p className="text-sm text-muted-foreground">{t('merchant_advances.onboarding.funders.appetiteHelp')}</p>
+                  <ContextHelp title={t('merchant_advances.glossary.title')} bulb>
+                    <ul className="list-disc space-y-1 pl-5">
+                      {(['amr', 'tib', 'nsf', 'adb', 'sic'] as const).map((term) => (
+                        <li key={term}>{t(`merchant_advances.glossary.${term}`)}</li>
+                      ))}
+                    </ul>
+                  </ContextHelp>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {FUNDER_CRITERIA_KEYS.map((key) => {
+                      const inputId = `criteria-${key}`
+                      const listPlaceholder = isCriteriaListKey(key)
+                        ? t(`merchant_advances.onboarding.criteria.placeholder.${key}`)
+                        : undefined
+                      return (
+                        <div key={key} className="grid gap-1">
+                          <CriteriaFieldLabel htmlFor={inputId} criteriaKey={key} />
+                          {CRITERIA_BOOL.has(key) ? (
+                            <CheckboxField
+                              label={t(`merchant_advances.onboarding.criteria.${key}`)}
+                              checked={Boolean(newFunder.criteria[key])}
+                              onCheckedChange={(checked) => setNewFunder({ ...newFunder, criteria: { ...newFunder.criteria, [key]: Boolean(checked) } })}
+                            />
+                          ) : CRITERIA_LIST.has(key) ? (
+                            <CriteriaListInput
+                              key={`${funderFormId}-${key}`}
+                              id={inputId}
+                              tokens={Array.isArray(newFunder.criteria[key]) ? newFunder.criteria[key] as string[] : []}
+                              onTokensChange={(tokens) => setNewFunder({ ...newFunder, criteria: { ...newFunder.criteria, [key]: tokens } })}
+                              placeholder={listPlaceholder}
+                              removeAriaLabel={t('merchant_advances.onboarding.criteria.removeToken')}
+                            />
+                          ) : (
+                            <Input
+                              id={inputId}
+                              value={String(newFunder.criteria[key] ?? '')}
+                              onChange={(event) => {
+                                const raw = event.target.value
+                                const nextValue = raw === '' ? undefined : Number.isFinite(Number(raw)) ? Number(raw) : raw
+                                setNewFunder({ ...newFunder, criteria: { ...newFunder.criteria, [key]: nextValue } })
+                              }}
+                            />
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : null}
               <Button
                 type="button"
                 onClick={async () => {
@@ -581,6 +664,16 @@ export function OnboardingWizard() {
                     { name: newFunder.name },
                   )
                   await refreshFunders()
+                  setNewFunder({
+                    name: '',
+                    code: '',
+                    route: 'email',
+                    submitEmail: '',
+                    fromAddressOverride: '',
+                    requiresUnstampedStatements: false,
+                    criteria: {},
+                  })
+                  setFunderFormId((value) => value + 1)
                   flash(t('merchant_advances.onboarding.funders.added'), 'success')
                 }}
               >
